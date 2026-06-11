@@ -6,6 +6,7 @@
 // { "mcpServers": { "fiatdock": { "command": "npx", "args": ["fiatdock-mcp"],
 //   "env": { "FIATDOCK_URL": "https://fiatdock.com", "AGENT_PRIVATE_KEY": "0x..." } } } }
 
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -21,7 +22,10 @@ if (process.env.AGENT_PRIVATE_KEY) {
   payFetch = wrapFetchWithPayment(fetch, account);
 }
 
-const server = new McpServer({ name: "fiatdock", title: "FiatDock", version: "1.1.0", websiteUrl: "https://fiatdock.com" });
+// serverInfo version reads the package version — single source of truth, so a
+// release bump in package.json can never drift from what agents see
+const VERSION = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
+const server = new McpServer({ name: "fiatdock", title: "FiatDock", version: VERSION, websiteUrl: "https://fiatdock.com" });
 
 // Compliance wording shared by paid tools (binding — mirrors /terms):
 const COMPLIANCE =
@@ -60,7 +64,16 @@ const ORDER_OUTPUT = {
 // non-2xx (incl. an unpaid 402 challenge when AGENT_PRIVATE_KEY is missing) is isError
 async function toResult(r) {
   const raw = await r.text();
-  if (!r.ok) return { content: [{ type: "text", text: raw }], isError: true };
+  if (!r.ok) {
+    const out = { content: [{ type: "text", text: raw }], isError: true };
+    // provider-activation 503: surface the friendly status + retryAfterSeconds
+    // as structured data too (spec skips outputSchema validation on isError)
+    try {
+      const body = JSON.parse(raw);
+      if (body?.status === "activating") out.structuredContent = body;
+    } catch { /* non-JSON error body */ }
+    return out;
+  }
   return { content: [{ type: "text", text: raw }], structuredContent: JSON.parse(raw) };
 }
 
