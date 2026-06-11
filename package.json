@@ -1,6 +1,6 @@
 {
   "name": "fiatdock-mcp",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "mcpName": "com.fiatdock/fiatdock-mcp",
   "description": "MCP server for FiatDock — non-custodial USDC on/off-ramp tools for AI agents (quotes, sessions, order status) with automatic x402 USDC payment",
   "type": "module",
