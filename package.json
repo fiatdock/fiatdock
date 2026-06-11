@@ -27,10 +27,10 @@
   "homepage": "https://fiatdock.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/madiosama10/fiatdock.git"
+    "url": "git+https://github.com/fiatdock/fiatdock.git"
   },
   "bugs": {
-    "url": "https://github.com/madiosama10/fiatdock/issues",
+    "url": "https://github.com/fiatdock/fiatdock/issues",
     "email": "osama@fiatdock.com"
   },
   "license": "MIT",
