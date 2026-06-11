@@ -1,0 +1,43 @@
+{
+  "name": "fiatdock-mcp",
+  "version": "1.0.2",
+  "mcpName": "com.fiatdock/fiatdock-mcp",
+  "description": "MCP server for FiatDock — non-custodial USDC on/off-ramp tools for AI agents (quotes, sessions, order status) with automatic x402 USDC payment",
+  "type": "module",
+  "bin": {
+    "fiatdock-mcp": "server.js"
+  },
+  "files": [
+    "server.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "x402",
+    "usdc",
+    "offramp",
+    "onramp",
+    "ai-agents",
+    "fiatdock"
+  ],
+  "homepage": "https://fiatdock.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/madiosama10/fiatdock.git"
+  },
+  "bugs": {
+    "url": "https://github.com/madiosama10/fiatdock/issues",
+    "email": "osama@fiatdock.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "viem": "^2.21.0",
+    "x402-fetch": "^1.2.0",
+    "zod": "^3.23.0"
+  }
+}

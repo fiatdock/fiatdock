@@ -1,0 +1,42 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.fiatdock/fiatdock-mcp",
+  "title": "FiatDock",
+  "description": "Non-custodial USDC <-> bank for AI agents via x402 + Transak. Own funds only; PT + EU/EEA; 18+.",
+  "version": "1.0.2",
+  "websiteUrl": "https://fiatdock.com",
+  "repository": {
+    "url": "https://github.com/madiosama10/fiatdock",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "fiatdock-mcp",
+      "version": "1.0.2",
+      "runtimeHint": "npx",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "FIATDOCK_URL",
+          "description": "FiatDock API base URL",
+          "isRequired": false,
+          "default": "https://fiatdock.com"
+        },
+        {
+          "name": "AGENT_PRIVATE_KEY",
+          "description": "Agent wallet key that auto-pays the $0.05 USDC x402 fee for paid tools. Optional: free tools (get_quote, get_order_status) work without it. Use a dedicated low-balance wallet.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://fiatdock.com/mcp"
+    }
+  ]
+}
