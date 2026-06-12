@@ -1,6 +1,6 @@
 {
   "name": "fiatdock-mcp",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "mcpName": "com.fiatdock/fiatdock-mcp",
   "description": "MCP server for FiatDock — non-custodial USDC on/off-ramp tools for AI agents (quotes, sessions, order status) with automatic x402 USDC payment",
   "type": "module",
@@ -36,8 +36,9 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "@x402/evm": "^2.14.0",
+    "@x402/fetch": "^2.14.0",
     "viem": "^2.21.0",
-    "x402-fetch": "^1.2.0",
     "zod": "^3.23.0"
   }
 }

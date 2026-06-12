@@ -11,15 +11,20 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { privateKeyToAccount } from "viem/accounts";
-import { wrapFetchWithPayment } from "x402-fetch";
+import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
+import { ExactEvmScheme } from "@x402/evm";
 
 const BASE = process.env.FIATDOCK_URL || "https://fiatdock.com";
 
-// x402-paying fetch (falls back to plain fetch if no key — free endpoints still work)
+// x402-paying fetch (falls back to plain fetch if no key — free endpoints still work).
+// Protocol v2: the wildcard network accepts whatever EVM network the server's
+// challenge names (base-sepolia today, base mainnet later).
 let payFetch = fetch;
 if (process.env.AGENT_PRIVATE_KEY) {
   const account = privateKeyToAccount(process.env.AGENT_PRIVATE_KEY);
-  payFetch = wrapFetchWithPayment(fetch, account);
+  payFetch = wrapFetchWithPaymentFromConfig(fetch, {
+    schemes: [{ network: "eip155:*", client: new ExactEvmScheme(account) }],
+  });
 }
 
 // serverInfo version reads the package version — single source of truth, so a
@@ -66,6 +71,12 @@ async function toResult(r) {
   const raw = await r.text();
   if (!r.ok) {
     const out = { content: [{ type: "text", text: raw }], isError: true };
+    // x402 v2 carries the challenge base64-encoded in the PAYMENT-REQUIRED
+    // header (the 402 body is empty) — decode it so agents see the requirements
+    const pr = r.status === 402 && r.headers.get("payment-required");
+    if (pr) {
+      try { out.content = [{ type: "text", text: Buffer.from(pr, "base64").toString("utf8") }]; } catch { /* keep raw */ }
+    }
     // provider-activation 503: surface the friendly status + retryAfterSeconds
     // as structured data too (spec skips outputSchema validation on isError)
     try {
