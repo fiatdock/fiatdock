@@ -1,99 +1,47 @@
-# fiatdock-mcp
+<div align="center">
 
-Move value between USDC and a bank account from any AI agent — **non-custodially** (conversion, KYC and custody are handled by Transak, a licensed provider; FiatDock never touches funds).
+# FiatDock
 
-```bash
-npx -y fiatdock-mcp        # that's it — 4 MCP tools over stdio
-# optional env: AGENT_PRIVATE_KEY=0x... auto-pays the $0.05 x402 fee for paid tools
-```
+### The non-custodial marketplace for AI agents
 
-| Tool | Cost | What it does |
-|---|---|---|
-| `get_quote` | free | Live rate + all fees itemised (incl. the 1% service commission) |
-| `create_offramp_session` | $0.05 USDC via x402 | Agent's USDC → owner's own bank account; returns a one-time `checkoutUrl` |
-| `create_onramp_session` | $0.05 USDC via x402 | Owner's own fiat → USDC to the agent's wallet (address locked) |
-| `get_order_status` | free | Track an order by `partnerOrderId` |
+**Discover and pay for [MCP](https://modelcontextprotocol.io) services per call, via [x402](https://www.x402.org) on Base.**
+List your service for free, get paid directly to your wallet — keep 99%, with **0% commission your first month**.
 
-- **Remote endpoint (no install):** `https://fiatdock.com/mcp` — Streamable HTTP, stateless, CORS-enabled. Paid tools return the x402 402 challenge there (remote can't sign payments).
-- **Official MCP Registry:** [`com.fiatdock/fiatdock-mcp`](https://registry.modelcontextprotocol.io/v0.1/servers?search=com.fiatdock/fiatdock-mcp)
-- **No MCP?** `GET https://fiatdock.com/tools.json` — the same tools as OpenAI/Gemini function-calling schemas mapped to the plain [REST API](https://fiatdock.com/openapi.json).
-- **Per-client setup** (Claude Desktop/Code, Cursor, VS Code, Windsurf, Gemini CLI, OpenAI Agents SDK, LangChain, CrewAI): [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) · runnable examples: [docs/examples/](docs/examples/)
+[**Website**](https://fiatdock.com) · [**Browse services**](https://fiatdock.com/browse) · [**Sell your service**](https://fiatdock.com/sell) · [**How it works**](https://fiatdock.com/mcp-marketplace.html) · [**Pricing**](https://fiatdock.com/pricing) · [**Docs**](https://fiatdock.com/docs)
 
-**Compliance (binding):** users must be 18+, in Portugal or Transak-supported EU/EEA countries (not available in the UK or restricted countries). **Own-account rule:** the wallet sending crypto and the bank account receiving fiat must belong to the same person — the agent's owner. No third-party funds, no aggregation, no person-to-person transfers. Crypto is volatile; quotes are indicative; nothing here is investment advice. [Terms](https://fiatdock.com/terms) · [Privacy](https://fiatdock.com/privacy) · [Risk warning](https://fiatdock.com/risk)
+![Payments: x402](https://img.shields.io/badge/payments-x402-7c3aed)
+![Network: Base](https://img.shields.io/badge/network-Base-0052ff)
+![Protocol: MCP](https://img.shields.io/badge/protocol-MCP-a21caf)
+![Non-custodial](https://img.shields.io/badge/custody-non--custodial-16a34a)
 
-## Environment
+</div>
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `FIATDOCK_URL` | no (default `https://fiatdock.com`) | FiatDock API base URL |
-| `AGENT_PRIVATE_KEY` | only for paid tools | Agent wallet key used to auto-pay the $0.05 x402 fee. Without it, free tools still work and paid tools return the 402 challenge. **Use a dedicated low-balance wallet; never your main key.** |
+---
 
-## Claude Desktop / Cursor / Windsurf / Gemini CLI
+## What is FiatDock?
 
-All four read the same `mcpServers` shape (file: `claude_desktop_config.json`, `~/.cursor/mcp.json`, `~/.codeium/windsurf/mcp_config.json`, `~/.gemini/settings.json`):
+**FiatDock is a non-custodial marketplace where AI agents discover and pay for MCP services** published by other developers. An agent searches the catalog, calls a service, and pays per call in USDC over the **x402** protocol — settled on-chain, wallet-to-wallet on **Base**, with **no custody of funds at any point**. FiatDock takes a 1% platform fee as an atomic on-chain split (0% for a seller's first 30 days) and never holds, routes, or aggregates money.
 
-```json
-{
-  "mcpServers": {
-    "fiatdock": {
-      "command": "npx",
-      "args": ["-y", "fiatdock-mcp"],
-      "env": { "AGENT_PRIVATE_KEY": "0x..." }
-    }
-  }
-}
-```
+## For developers — sell your MCP service
 
-## Claude Code
+- **List free, get paid per call.** Publish your MCP server with a per-call price; agents pay you directly in USDC.
+- **Keep 100% for 30 days**, then 99% (1% platform fee). No subscriptions, no invoicing, no payout cycle — paid per call, on-chain, instantly.
+- **Your endpoint stays private** behind a signed gateway URL. → [Sell your MCP service](https://fiatdock.com/sell-mcp-service.html)
 
-```bash
-claude mcp add fiatdock -e AGENT_PRIVATE_KEY=0x... -- npx -y fiatdock-mcp
-# or remote, no install (free tools + x402 challenges):
-claude mcp add --transport http fiatdock https://fiatdock.com/mcp
-```
+## For AI agents — discover & call services
 
-## VS Code (Copilot agent mode)
+- **Three MCP tools** — `search_services`, `get_service`, `call_service` — over the remote `https://fiatdock.com/mcp` or the `npx fiatdock-mcp` package.
+- **No signup, no API keys.** Pay per call via x402 (`402` → sign → retry); the package auto-pays.
+- **Trust signals** — identity-verified (KYC + security-scanned) sellers and verified-purchase reviews.
 
-`.vscode/mcp.json`:
+## Why non-custodial matters
 
-```json
-{
-  "servers": {
-    "fiatdock": { "type": "stdio", "command": "npx", "args": ["-y", "fiatdock-mcp"], "env": { "AGENT_PRIVATE_KEY": "0x..." } }
-  }
-}
-```
+FiatDock moves **data**, never your money. Every payment goes directly buyer → seller via x402; the 1% fee is an on-chain split. No escrow, no pooled wallet, no counterparty risk.
 
-## OpenAI Agents SDK / LangChain / CrewAI
+> MCP marketplace · x402 · AI agents · agentic commerce · agent payments · monetize MCP server · sell an API to AI agents · Model Context Protocol · USDC · Base · pay-per-call · non-custodial.
 
-All three consume MCP servers natively — point them at `npx -y fiatdock-mcp` (stdio) or `https://fiatdock.com/mcp` (Streamable HTTP):
+**Get started:** [fiatdock.com](https://fiatdock.com) · marketplace repo: [fiatdock/fiatdock-marketplace](https://github.com/fiatdock/fiatdock-marketplace)
 
-```python
-# OpenAI Agents SDK
-from agents.mcp import MCPServerStdio
-async with MCPServerStdio(params={"command": "npx", "args": ["-y", "fiatdock-mcp"],
-                                  "env": {"AGENT_PRIVATE_KEY": "0x..."}}) as fiatdock: ...
+---
 
-# LangChain (langchain-mcp-adapters)
-from langchain_mcp_adapters.client import MultiServerMCPClient
-client = MultiServerMCPClient({"fiatdock": {"transport": "streamable_http", "url": "https://fiatdock.com/mcp"}})
-
-# CrewAI (crewai-tools)
-from crewai_tools import MCPServerAdapter
-tools = MCPServerAdapter({"url": "https://fiatdock.com/mcp", "transport": "streamable-http"})
-```
-
-## How a typical off-ramp flows
-
-1. `get_quote` (free) — agent checks the rate and the full fee breakdown.
-2. `create_offramp_session` — pays $0.05 in USDC automatically via x402, receives `checkoutUrl` + `partnerOrderId`.
-3. The agent forwards `checkoutUrl` to its human owner (valid ~5 minutes, single use). KYC happens once, ever, at the provider.
-4. `get_order_status` (or a signed callback) confirms `COMPLETED`.
-
-## Security
-
-Found a vulnerability? Please report it privately to **osama@fiatdock.com** — see [SECURITY.md](SECURITY.md). Never open a public issue for security reports.
-
-## License
-
-[MIT](LICENSE)
+<sub>This repository is the public mirror of the <code>fiatdock-mcp</code> npm package. Full documentation: <a href="https://fiatdock.com/docs">fiatdock.com/docs</a>.</sub>
