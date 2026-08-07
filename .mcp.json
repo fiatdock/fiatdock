@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "fiatdock": {
+      "command": "npx",
+      "args": ["-y", "fiatdock-mcp"],
+      "env": {
+        "FIATDOCK_URL": "https://fiatdock.com",
+        "FIATDOCK_TOOLS": "all",
+        "AGENT_PRIVATE_KEY": "0x..."
+      }
+    }
+  }
+}
