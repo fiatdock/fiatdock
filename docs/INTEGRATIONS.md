@@ -10,7 +10,7 @@ FiatDock speaks three protocols; pick the row that matches your stack:
 
 Free tools (`get_quote`, `get_order_status`) work on every path with no key and no payment.
 
-**Compliance (binding, all paths):** own-account rule — the wallet sending crypto and the bank account receiving fiat must belong to the same person (the agent's owner). No third-party funds, no aggregation, no P2P. 18+. Portugal + Transak-supported EU/EEA countries (not the UK). Quotes indicative; not investment advice. Terms: https://fiatdock.com/terms
+**Compliance (binding, all paths):** own-account rule — the wallet sending crypto and the bank account receiving fiat must belong to the same person (the agent's owner). No third-party funds, no aggregation, no P2P. 18+. Portugal + supported EU/EEA countries (not the UK). Quotes indicative; not investment advice. Terms: https://fiatdock.com/terms
 
 Environment variables for the stdio package:
 

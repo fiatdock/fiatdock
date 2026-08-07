@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.fiatdock/fiatdock-mcp",
   "title": "FiatDock",
-  "description": "Non-custodial USDC <-> bank for AI agents via x402 + Transak. Own funds only; PT + EU/EEA; 18+.",
-  "version": "1.2.0",
+  "description": "Non-custodial USDC <-> bank for AI agents via x402 + a licensed payment partner. Own funds only; PT + EU/EEA; 18+.",
+  "version": "1.6.0",
   "websiteUrl": "https://fiatdock.com",
   "repository": {
     "url": "https://github.com/fiatdock/fiatdock",
@@ -14,9 +14,11 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "fiatdock-mcp",
-      "version": "1.2.0",
+      "version": "1.6.0",
       "runtimeHint": "npx",
-      "transport": { "type": "stdio" },
+      "transport": {
+        "type": "stdio"
+      },
       "environmentVariables": [
         {
           "name": "FIATDOCK_URL",
@@ -25,10 +27,21 @@
           "default": "https://fiatdock.com"
         },
         {
+          "name": "FIATDOCK_TOOLS",
+          "description": "Install only the tool groups you need, so unused tools don't take up your agent's context: 'ramp' (4 tools: quotes, USDC<->bank sessions, order status), 'data' (11 tools: token price/safety/report, gas, balances, tx status, address intelligence), 'marketplace' (3 tools: search, inspect and pay for other agents' MCP services). Comma-separate to combine, e.g. 'ramp,marketplace'. Default: all 18. An unrecognised value serves all tools rather than none.",
+          "isRequired": false,
+          "default": "all"
+        },
+        {
           "name": "AGENT_PRIVATE_KEY",
-          "description": "Agent wallet key that auto-pays the $0.05 USDC x402 fee for paid tools. Optional: free tools (get_quote, get_order_status) work without it. Use a dedicated low-balance wallet.",
+          "description": "Agent wallet key that auto-pays the $1.00 USDC x402 fee for paid tools. Optional: free tools (get_quote, get_order_status) work without it. Use a dedicated low-balance wallet.",
           "isRequired": false,
           "isSecret": true
+        },
+        {
+          "name": "FIATDOCK_MAX_PRICE_USD",
+          "description": "Price-bait guard for call_service: refuse to pay if a paid gateway call's total x402 charge exceeds this many USD. Optional (default: no ceiling); overridable per call via the maxPriceUsd argument.",
+          "isRequired": false
         }
       ]
     }

@@ -13,8 +13,8 @@ business days.
 ## Scope notes
 
 - This repository contains the public MCP client package only. The FiatDock
-  service is non-custodial: conversion, KYC and custody are handled by Transak,
-  a licensed provider — FiatDock never holds user funds or keys.
+  service is non-custodial: conversion, KYC and custody are handled by a licensed,
+  regulated payment provider — FiatDock never holds user funds or keys.
 - `AGENT_PRIVATE_KEY` is read from the environment and used only to sign x402
   payments locally; it is never transmitted. Use a dedicated low-balance wallet.
 

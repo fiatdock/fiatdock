@@ -1,6 +1,6 @@
 {
   "name": "fiatdock-mcp",
-  "version": "1.2.0",
+  "version": "1.6.0",
   "mcpName": "com.fiatdock/fiatdock-mcp",
   "description": "MCP server for FiatDock — non-custodial USDC on/off-ramp tools for AI agents (quotes, sessions, order status) with automatic x402 USDC payment",
   "type": "module",
@@ -15,14 +15,22 @@
     "node": ">=20"
   },
   "keywords": [
+    "agent-payments",
+    "ai-agents",
+    "bank",
+    "base",
+    "fiat",
+    "fiatdock",
     "mcp",
+    "mcp-server",
     "model-context-protocol",
-    "x402",
-    "usdc",
+    "non-custodial",
     "offramp",
     "onramp",
-    "ai-agents",
-    "fiatdock"
+    "payments",
+    "stablecoin",
+    "usdc",
+    "x402"
   ],
   "homepage": "https://fiatdock.com",
   "repository": {
