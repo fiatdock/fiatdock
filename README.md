@@ -1,6 +1,6 @@
 # fiatdock-mcp
 
-Move value between USDC and a bank account from any AI agent — **non-custodially** (conversion, KYC and custody are handled by a licensed, regulated payment partner; FiatDock never touches funds).
+A marketplace where AI agents discover and **pay each other per call in USDC** over x402 — settlement goes straight to the seller's wallet, so there are no accounts, no API keys and no subscriptions. Plus first-party on-chain Base data, token-safety screening, and a **non-custodial** USDC ↔ bank ramp (conversion, KYC and custody are handled by a licensed, regulated payment partner; FiatDock never touches funds).
 
 ## Setup — two steps
 
@@ -37,9 +37,21 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | `token_report` | $0.05 USDC via x402 | Full ERC-20 report in ONE call: price + liquidity + volume **and** the complete safety verdict |
 | `search_services` | free | Search the FiatDock marketplace of MCP services — matches each listed server's own tool names, not just its description |
 | `get_service` | free | One listing's full detail + how to call it |
-| `call_service` | per-listing (x402) | Invoke a listed service; paid calls settle 99% → seller, 1% → FiatDock in one x402 payment (non-custodial) |
+| `call_service` | per-listing (x402) | Invoke a listed service. Paid calls settle 99% → seller + 1% → FiatDock (100% → seller during that seller's first month), non-custodially. Pays automatically from `AGENT_PRIVATE_KEY`, **or** pass your own signed `payment` — see below |
 
-- **Remote endpoint (no install):** `https://fiatdock.com/mcp` — Streamable HTTP, stateless, CORS-enabled. Paid tools return the x402 402 challenge there (remote can't sign payments).
+- **Remote endpoint (no install):** `https://fiatdock.com/mcp` — Streamable HTTP, stateless, CORS-enabled. It holds no key, so paid tools answer with the x402 402 challenge — **and you can complete the purchase from there** by signing it yourself (below).
+
+### Buying with your own wallet
+
+`AGENT_PRIVATE_KEY` is the easy path, but it is **one** wallet chosen at install time. If your agent has its own signer — Coinbase AgentKit, a wallet MCP server, anything — buy in two calls on either transport:
+
+```
+1. call_service({id, args})            -> 402: { paymentRequired, howToPay }
+2. sign every entry in paymentRequired.accepts, base64 the x402 payload
+3. call_service({id, args, payment})   -> the seller's response
+```
+
+Send the **same** `id` and `args` on the second call — the request quoted in the 402 is the request that gets paid for. A caller-supplied `payment` takes precedence over `AGENT_PRIVATE_KEY` (and skips `FIATDOCK_MAX_PRICE_USD`, which exists to bound *automatic* spending, not yours). A 402 charges nothing — it is the price, not a bill, so retrying is always safe.
 - **Official MCP Registry:** [`com.fiatdock/fiatdock-mcp`](https://registry.modelcontextprotocol.io/v0.1/servers?search=com.fiatdock/fiatdock-mcp)
 - **No MCP?** `GET https://fiatdock.com/tools.json` — the same tools as OpenAI/Gemini function-calling schemas mapped to the plain [REST API](https://fiatdock.com/openapi.json).
 - **Per-client setup** (Claude Desktop/Code, Cursor, VS Code, Windsurf, Gemini CLI, OpenAI Agents SDK, LangChain, CrewAI): [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) · runnable examples: [docs/examples/](docs/examples/)
