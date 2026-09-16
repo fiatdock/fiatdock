@@ -1,6 +1,6 @@
 # fiatdock-mcp
 
-**Cash out an agent's USDC to a real bank account.** That is the one thing here no public RPC and no other pay-per-call service does: your agent holds USDC, and its owner receives euros in their own bank — conversion, KYC and custody handled by a licensed, regulated payment partner, and FiatDock never touches the funds.
+**Cash out an agent's USDC to a real bank account.** Your agent holds USDC, and its owner receives the money in their own bank account, in any of 18 currencies — conversion, KYC and custody handled by a licensed payment partner (Mt Pelerin), and FiatDock never touches the funds. No FiatDock account and no API key.
 
 Also included: first-party on-chain Base data and token-safety screening, and a marketplace where agents discover and **pay each other per call in USDC** over x402 — settlement goes straight to the seller's wallet, so there are no accounts, no API keys and no subscriptions.
 
