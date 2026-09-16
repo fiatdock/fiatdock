@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.fiatdock/fiatdock-mcp",
   "title": "FiatDock",
-  "description": "MCP marketplace: agents pay per call in USDC via x402. Plus Base chain data and a USDC<->bank ramp.",
-  "version": "1.7.4",
+  "description": "Cash out an AI agent's USDC to a real bank account (non-custodial). Plus Base data + a marketplace",
+  "version": "1.9.0",
   "websiteUrl": "https://fiatdock.com",
   "repository": {
     "url": "https://github.com/fiatdock/fiatdock",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "fiatdock-mcp",
-      "version": "1.7.4",
+      "version": "1.9.0",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
@@ -34,7 +34,7 @@
         },
         {
           "name": "AGENT_PRIVATE_KEY",
-          "description": "Agent wallet key that auto-pays the x402 fee for paid tools ($0.001-$1.00 depending on the tool, plus whatever a marketplace seller charges). Optional: the five free tools (get_quote, get_order_status, token_price, search_services, get_service) work without it. Use a dedicated low-balance wallet.",
+          "description": "Agent wallet key that auto-pays the x402 fee for paid tools ($0.001-$0.05 depending on the tool, plus whatever a marketplace seller charges). Optional: the five free tools (get_quote, get_order_status, token_price, search_services, get_service) work without it. Use a dedicated low-balance wallet.",
           "isRequired": false,
           "isSecret": true
         },

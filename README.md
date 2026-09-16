@@ -1,6 +1,8 @@
 # fiatdock-mcp
 
-A marketplace where AI agents discover and **pay each other per call in USDC** over x402 — settlement goes straight to the seller's wallet, so there are no accounts, no API keys and no subscriptions. Plus first-party on-chain Base data, token-safety screening, and a **non-custodial** USDC ↔ bank ramp (conversion, KYC and custody are handled by a licensed, regulated payment partner; FiatDock never touches funds).
+**Cash out an agent's USDC to a real bank account.** That is the one thing here no public RPC and no other pay-per-call service does: your agent holds USDC, and its owner receives euros in their own bank — conversion, KYC and custody handled by a licensed, regulated payment partner, and FiatDock never touches the funds.
+
+Also included: first-party on-chain Base data and token-safety screening, and a marketplace where agents discover and **pay each other per call in USDC** over x402 — settlement goes straight to the seller's wallet, so there are no accounts, no API keys and no subscriptions.
 
 ## Setup — two steps
 
@@ -21,8 +23,8 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | Tool | Cost | What it does |
 |---|---|---|
 | `get_quote` | free | Live rate + the exact amount received, net of every provider fee (incl. the 1% service commission) |
-| `create_offramp_session` | $1.00 USDC via x402 | Agent's USDC → owner's own bank account; returns a one-time `checkoutUrl` |
-| `create_onramp_session` | $1.00 USDC via x402 | Owner's own fiat → USDC to the agent's wallet (address locked) |
+| `create_offramp_session` | $0.01 USDC via x402 | Agent's USDC → owner's own bank account; returns a one-time `checkoutUrl` |
+| `create_onramp_session` | $0.01 USDC via x402 | Owner's own fiat → USDC to the agent's wallet (address locked) |
 | `get_order_status` | free | Track an order by `partnerOrderId` |
 | `token_price` | free | Real-time price/liquidity/volume/change for any EVM token by contract address (DexScreener), or a major symbol spot price |
 | `token_safety` | $0.01 USDC via x402 | On-chain safety verdict (honeypot / tax / owner-privilege / holder-concentration) `safe\|caution\|danger` (GoPlus + DexScreener); not charged if data unavailable |
@@ -35,7 +37,7 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | `tx_status` | $0.001 USDC via x402 | Base tx: success or failed, block, confirmations, gas, from/to |
 | `address_intel` | $0.005 USDC via x402 | Enrich any Base address — EOA/contract/ERC-20, nonce, ETH+USDC balance, keyless security verdict (phishing / sanctioned / mixer) |
 | `token_report` | $0.05 USDC via x402 | Full ERC-20 report in ONE call: price + liquidity + volume **and** the complete safety verdict |
-| `search_services` | free | Search the FiatDock marketplace of MCP services — matches each listed server's own tool names, not just its description |
+| `search_services` | free | Search the FiatDock marketplace of MCP services — matches each listed server's own tool names, not just its description. Returns the **top 20** best-matching listings by default (`limit`, max 50); `truncated`/`total` tell you when there are more |
 | `get_service` | free | One listing's full detail + how to call it |
 | `call_service` | per-listing (x402) | Invoke a listed service. Paid calls settle 99% → seller + 1% → FiatDock (100% → seller during that seller's first month), non-custodially. Pays automatically from `AGENT_PRIVATE_KEY`, **or** pass your own signed `payment` — see below |
 
@@ -64,7 +66,7 @@ Send the **same** `id` and `args` on the second call — the request quoted in t
 |---|---|---|
 | `FIATDOCK_URL` | no (default `https://fiatdock.com`) | FiatDock API base URL |
 | `FIATDOCK_TOOLS` | no (default `all`) | Install only the tool groups you need, so the rest don't take up your agent's context. See below. |
-| `AGENT_PRIVATE_KEY` | only for paid tools | Agent wallet key used to auto-pay the $1.00 x402 fee. Without it, free tools still work and paid tools return the 402 challenge. **Use a dedicated low-balance wallet; never your main key.** |
+| `AGENT_PRIVATE_KEY` | only for paid tools | Agent wallet key used to auto-pay the x402 fee — **$0.001–$0.05 depending on the tool**, plus whatever a marketplace seller charges for `call_service`. Without it, the five free tools still work and paid tools return the 402 challenge instead of buying. **Use a dedicated low-balance wallet; never your main key.** |
 | `FIATDOCK_MAX_PRICE_USD` | no (default: no ceiling) | Price-bait guard for `call_service`: refuse to pay if a paid gateway call's **total** x402 charge exceeds this many USD. Overridable per call via the `maxPriceUsd` argument. |
 
 ### Pick your tools — `FIATDOCK_TOOLS`
@@ -152,7 +154,7 @@ tools = MCPServerAdapter({"url": "https://fiatdock.com/mcp", "transport": "strea
 ## How a typical off-ramp flows
 
 1. `get_quote` (free) — agent checks the rate and the full fee breakdown.
-2. `create_offramp_session` — pays $1.00 in USDC automatically via x402, receives `checkoutUrl` + `partnerOrderId`.
+2. `create_offramp_session` — pays $0.01 in USDC automatically via x402, receives `checkoutUrl` + `partnerOrderId`.
 3. The agent forwards `checkoutUrl` to its human owner (valid ~2 hours). The owner gives the provider a phone number and email; identity documents are needed only above ~CHF 999 per rolling 30 days — no account, no password.
 4. `get_order_status` (or a signed callback) confirms `COMPLETED`.
 
