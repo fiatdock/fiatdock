@@ -1,8 +1,8 @@
 {
   "name": "fiatdock-mcp",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "mcpName": "com.fiatdock/fiatdock-mcp",
-  "description": "Cash out an AI agent's USDC to a real bank account (non-custodial, licensed provider) — plus first-party Base chain data, token safety, and a marketplace where agents pay each other per call in USDC via x402, auto-paid from your wallet",
+  "description": "A marketplace where AI agents discover MCP services and buy them from other agents per call in USDC via x402, auto-paid from your wallet — plus a non-custodial USDC-to-bank cash-out (licensed provider), first-party Base chain data and token safety",
   "type": "module",
   "bin": {
     "fiatdock-mcp": "server.js"

@@ -371,24 +371,69 @@ const TOOL_SCHEMAS_FIELD = z.record(z.object({
 
 const CALL_HINT_FIELD = z.string().optional().describe("Plain-language instruction for how an agent invokes this listing, including what payment it needs and when it is charged");
 
+// ADR-0155 FIX 2 — the gateway's own settlement sentence (SETTLEMENT_GUARANTEE in the server's
+// invocable.js), byte for byte. This package is standalone and cannot import the server's src/, so
+// the text is duplicated here and pinned identical by test/callhint-honest-tool-missing.test.js.
+// Keep it on ONE line: that test reads it straight out of this file.
+const SETTLEMENT_GUARANTEE = "You are charged only if the seller actually answers: settlement happens AFTER delivery, never before. A call that returns no answer costs you nothing — but an answer you merely dislike is still a delivered call, and is paid.";
+// The write path's tool-name shape (MCP_TOOL_RE), so a hostile name can never break out of the
+// `"name":"..."` string in a copyable envelope. Same pin, same one-line rule.
+const SAFE_TOOL_NAME = /^[a-zA-Z0-9_.-]{1,64}$/;
+// ADR-0161 — the envelope described in WORDS, byte for byte the server's ENVELOPE_CALL (src/mcp-http.js),
+// replacing the "<tool>" templates a buyer could copy into a charged call. ONE line: the test reads it
+// from this file.
+const ENVELOPE_CALL = "Send ONE complete JSON-RPC 2.0 request object instead of plain arguments: jsonrpc set to \"2.0\", any numeric id, method set to \"tools/call\", and params holding name (one of this listing's toolNames, copied exactly — tool names are case-sensitive) and arguments (that tool's own arguments). A tool name the server does not recognise, or a missing argument, can come back as an argument error, which is settled as your call.";
+// ADR-0161 — the three field descriptions that decide whether a buyer tries a listing, byte-identical to
+// the server's (asserted on both transports' real tools/list output in test/mcp-marketplace.test.js).
+const CALLABLE_DESCRIPTION = `Whether FiatDock's last check believes a call to this listing will produce an answer. true = known good (check callableVia for the required call shape); false = the last check was not clean (see callableReason), and you may still buy it; ABSENT = not yet checked, which is not a defect. Prefer true; never treat absent as false. ${SETTLEMENT_GUARANTEE}`;
+const CALLABLE_VIA_DESCRIPTION = `Present only when the call must take a SPECIFIC shape. "json-rpc-envelope" means this listing names no single tool (its server exposes many), so plain arguments are forwarded but usually cannot be routed. ${ENVELOPE_CALL} No template is printed here, because a copied placeholder name is a call the server cannot route: get_service with includeSchemas:true returns the real argument names and types (toolSchemas, for up to 40 of a server's tools), free. Absent means ordinary arguments work.`;
+const CALLABLE_REASON_DESCRIPTION = `Why FiatDock's last check was not clean. Present when callable is false, and also on a callable:true listing that names no tool ("listing_tool_unset", paired with callableVia). Values: "listing_tool_missing" (sells a tool its own server did not report), "listing_tool_unset" (names no tool — see callableVia), "endpoint_unreachable" (did not answer the last check, which can be hours old), "endpoint_dormant" (silent for days), "endpoint_cannot_route_tool_calls" (answers every request with its handshake), "endpoint_demands_its_own_payment" (answers a paid call with an x402 demand of its own), "seller_payout_unset" and "seller_payout_unspendable" (no usable payout wallet — the gateway refuses before any price), "listing_suspended" (the gateway refuses). The payout and suspension reasons are refusals; the rest are advice for choosing a listing — see callable for when a call is charged.`;
+
 function callHintFor(listing) {
   // (ADR-0083: an empty string is not "none", it is "never set" — and a model reading
   // `"mcpTool": ""` concludes no tool is needed.)
   if (listing.mcpTool === "") delete listing.mcpTool;
+  // ADR-0167 (limit closed): if the catalog already sent a hint, USE IT. The server can read the raw
+  // record, so its hint names the nearest real tool of a stale-tool listing — the one sentence that says
+  // what to call instead — and `mcpToolNear` is deliberately not a public field, so this copy can never
+  // derive it. Falling through when the field is absent keeps an older server working unchanged.
+  if (typeof listing.callHint === "string" && listing.callHint) return listing;
   // ADR-0143 — every paid branch says which CALL to make; none said what to put IN it, and the
   // envelope branch prints `{…}` where the data goes. This package AUTO-PAYS, so a guessed
   // argument here spends real USDC from AGENT_PRIVATE_KEY before the seller rejects it — which
   // is exactly what was measured on production, twice. The shape is free to fetch and is only
   // available from us: a paid listing's own endpoint is withheld (ADR-0007).
   const SHAPES = ` Before paying, call get_service({ id: "${listing.id}", includeSchemas: true }) — it returns toolSchemas (argument names and types) for free. A paid listing's own endpoint is not published, so this is the only place to get them.`;
+  // ADR-0155 FIX 2 — the listing_tool_missing text, BYTE-IDENTICAL to the server's refusedHintFn
+  // (src/mcp-http.js); a parity test executes both and compares. It replaces "you are charged ONLY
+  // if the seller actually answers, so trying costs nothing" plus "send an envelope naming a real
+  // tool (e.g. <the first three names>)". A reviewer drove the real gateway code, with the seller
+  // answering minia2a's verbatim -32602: a misspelled name settles both legs (the buyer's fault,
+  // ADR-0109), and since ADR-0107 this package AUTO-PAYS such a listing — so a vague
+  // "name a real tool" spends real USDC. `mcpToolNear` is not in the public catalog this package
+  // reads (ADR-0131), so the near-branch is dormant here until the server supplies it.
+  const near = typeof listing.mcpToolNear === "string" && SAFE_TOOL_NAME.test(listing.mcpToolNear) ? listing.mcpToolNear : "";
+  const stale = listing.lastCheckedAt ? ` (last checked ${listing.lastCheckedAt})` : "";
+  const tools = Array.isArray(listing.toolNames) && listing.toolNames.length ? ` Its server reported: ${listing.toolNames.slice(0, 5).join(", ")}.` : "";
+  const route = near
+    ? ` The nearest tool its server does report is "${near}" — a different tool from the one this listing sells. To call it anyway: call_service({ id: "${listing.id}", args: {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"${near}","arguments":{…}}} }).`
+    : `${tools} To use ${tools ? "one of those" : "a different tool"} instead, send a COMPLETE JSON-RPC "tools/call" envelope that names it EXACTLY — no template is printed here, because a copied placeholder name is a call the server cannot route.`;
+  const toolMissing = `PAID ($${listing.priceUsd}/call). This listing sells the tool "${listing.mcpTool}", which its own server did not report${stale}, so a call to that tool — plain arguments, or an envelope naming it — that comes back as an error is refused free, and nothing settles.` +
+    route +
+    ` Two cautions before paying for a different tool: a name the server does not recognise can come back as an argument error, which is settled as your call; and some sellers bill their tools separately — if the answer is an x402 payment demand, the gateway refuses to settle, so you are not charged but you get no answer. ${SETTLEMENT_GUARANTEE}`;
   listing.callHint = listing.callable === false
     ? (listing.callableReason === "seller_payout_unset"
         ? `DO NOT CALL: the seller has set no payout wallet, so there is nowhere to send their 99% — the gateway answers 409 and never issues a price. Pick another listing.`
         : listing.callableReason === "listing_suspended"
         ? `DO NOT CALL: this listing is suspended; the gateway answers 403. Pick another listing.`
-        : `PAID ($${listing.priceUsd}/call). FiatDock's last check was not clean (${listing.callableReason || "unknown reason"})${listing.lastCheckedAt ? `, ${listing.lastCheckedAt}` : ""}, so it may not answer — but that check can be hours old, and you are charged ONLY if the seller actually answers, so trying costs nothing.${listing.callableReason === "listing_tool_missing" && Array.isArray(listing.toolNames) && listing.toolNames.length ? ` To bypass a wrong tool name, send a COMPLETE JSON-RPC envelope naming a real tool (e.g. ${listing.toolNames.slice(0, 3).join(", ")}).` : ""}`)
+        : listing.callableReason === "listing_tool_missing"
+        ? toolMissing
+        : `PAID ($${listing.priceUsd}/call). FiatDock's last check was not clean (${listing.callableReason || "unknown reason"})${listing.lastCheckedAt ? `, ${listing.lastCheckedAt}` : ""}, so it may not answer — but that check can be hours old. ${SETTLEMENT_GUARANTEE}`)
     : listing.callableVia === "json-rpc-envelope"
-    ? `PAID ($${listing.priceUsd}/call) — this listing names no single tool, so pass a COMPLETE JSON-RPC envelope as args: call_service({ id: "${listing.id}", args: {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"<tool>","arguments":{…}}} }). Its server exposes ${listing.toolCount || "many"} tool(s)${Array.isArray(listing.toolNames) && listing.toolNames.length ? ` — e.g. ${listing.toolNames.slice(0, 5).join(", ")}` : ""}. Plain arguments probably cannot be routed, and you are charged only if the seller actually answers. This package pays the x402 split automatically (AGENT_PRIVATE_KEY required).` + SHAPES
+    ? `PAID ($${listing.priceUsd}/call) — this listing names no single tool, so call_service's args must name one. ${ENVELOPE_CALL} It is forwarded to the seller untouched. ` +
+      `No template is printed here, because a copied placeholder name is a call the server cannot route: call get_service({ id: "${listing.id}", includeSchemas: true }) first — it returns toolSchemas (argument names and types, for up to 40 of the server's tools) for free, and a paid listing's own endpoint is not published. ` +
+      `Its server exposes ${listing.toolCount || "many"} tool(s)${Array.isArray(listing.toolNames) && listing.toolNames.length ? ` — e.g. ${listing.toolNames.slice(0, 5).join(", ")}` : ""}. ` +
+      `${SETTLEMENT_GUARANTEE} Payment is the usual x402 split: the fiatdock-mcp npm package pays it automatically from AGENT_PRIVATE_KEY, and the remote /mcp returns the 402 challenge to sign and send back as call_service's payment argument.`
     : routedListing(listing)
     ? `PAID ($${listing.priceUsd}/call): call_service({ id: "${listing.id}", args }) pays the 99% seller + 1% FiatDock split via x402 automatically (AGENT_PRIVATE_KEY required). You are charged only if the seller actually answers.` + SHAPES
     : listing.listingType === "stdio"
@@ -430,9 +475,9 @@ const SERVICE_FIELDS = {
   rating: z.object({ count: z.number(), average: z.number() }).optional().describe("Verified-purchase rating aggregate: { count, average (1-5) }"),
   feeBps: z.number().optional().describe("Effective gateway commission in basis points right now: 0 during the seller's first-month launch waiver (buyer pays the FULL price directly to the seller), else 100 (1%). PAID listings only (ADR-0022)."),
   // ADR-0082/0090 — the fields that say whether a buyer can actually buy this listing.
-  callable: z.boolean().optional().describe("Whether FiatDock's last check believes a call will produce an answer. true = known good (see callableVia for the required call shape); false = the last check was not clean (see callableReason) — you may still buy it, and since ADR-0107 you are charged ONLY if the seller actually answers, so a failed call costs nothing; ABSENT = not yet checked, which is NOT a defect"),
-  callableVia: z.string().optional().describe('Present only when the call must take a specific shape. "json-rpc-envelope" = send a COMPLETE {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"<tool>","arguments":{…}}} as args; plain arguments are forwarded but usually cannot be routed, and a seller error costs you nothing'),
-  callableReason: z.string().optional().describe('Why, when callable is false: "listing_tool_missing" | "listing_tool_unset" | "endpoint_unreachable" | "seller_payout_unset" | "listing_suspended"'),
+  callable: z.boolean().optional().describe(CALLABLE_DESCRIPTION),
+  callableVia: z.string().optional().describe(CALLABLE_VIA_DESCRIPTION),
+  callableReason: z.string().optional().describe(CALLABLE_REASON_DESCRIPTION),
   endpointHealthy: z.boolean().optional().describe("Whether the listing's endpoint answered FiatDock's last periodic check. Absent when never checked"),
   // ADR-0136 — declared because it is already SENT (see the same note on the remote transport).
   canDeliver: z.boolean().optional().describe("Whether the seller's endpoint ROUTES tool calls at all: FiatDock asks for a tool that cannot exist, and a server that answers the handshake blob to that (rather than an error) cannot route anything (ADR-0115). false = a call will not produce an answer; absent = the probe was inconclusive, which is not a defect"),
@@ -753,7 +798,8 @@ server.registerTool(
   async ({ q, category, verifiedOnly, sort, limit }) => {
     const params = new URLSearchParams();
     // ADR-0111: opt in to the traction/health fields this package declares in SERVICE_FIELDS.
-    params.set("include", "stats");
+    // ADR-0167: ask for the server-built hint too (see callHintFor).
+    params.set("include", "stats,callhint");
     if (q) params.set("q", q);
     if (category) params.set("category", category);
     if (verifiedOnly) params.set("verified", "1");
@@ -795,7 +841,7 @@ server.registerTool(
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
   },
   async ({ id, includeSchemas }) => {
-    const r = await fetch(`${BASE}/v1/marketplace/services/${encodeURIComponent(id)}?include=${includeSchemas ? "stats,schemas" : "stats"}`, { headers: { accept: "application/json" } });
+    const r = await fetch(`${BASE}/v1/marketplace/services/${encodeURIComponent(id)}?include=${includeSchemas ? "stats,schemas,callhint" : "stats,callhint"}`, { headers: { accept: "application/json" } });
     if (!r.ok) return toResult(r);
     const listing = callHintFor(JSON.parse(await r.text()));
     return { content: [{ type: "text", text: JSON.stringify(listing) }], structuredContent: listing };
@@ -1068,7 +1114,7 @@ server.registerTool(
         detail: listing.callableReason === "seller_payout_unset"
           ? `"${listing.name}" has no payout wallet, so there is nowhere to send the seller's 99% — the gateway answers 409 and never issues a price. This is not staleness; there is no payment to make.`
           : `"${listing.name}" is suspended; the gateway answers 403.`,
-        hint: "Use search_services to pick another listing. (Listings that merely failed their last health check are NOT blocked here — since ADR-0107 you are charged only if the seller answers, so trying one costs nothing.)",
+        hint: `Use search_services to pick another listing. Listings that merely failed their last health check are NOT blocked here. ${SETTLEMENT_GUARANTEE}`,
       }) }], isError: true };
     }
     if (routedListing(listing)) {

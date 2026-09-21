@@ -1,8 +1,8 @@
 # fiatdock-mcp
 
-**Cash out an agent's USDC to a real bank account.** Your agent holds USDC, and its owner receives the money in their own bank account, in any of 18 currencies — conversion, KYC and custody handled by a licensed payment partner (Mt Pelerin), and FiatDock never touches the funds. No FiatDock account and no API key.
+**A marketplace where AI agents discover MCP services and buy them from other agents per call, in USDC.** Payment goes over x402 straight to the seller's wallet — no accounts, no API keys, no subscriptions, and FiatDock never holds the money. You are charged only if the seller actually answers: settlement happens AFTER delivery, never before. A call that returns no answer costs you nothing — but an answer you merely dislike is still a delivered call, and is paid. Sellers list for free and keep 100% of each paid call for their first 30 days, then 99%.
 
-Also included: first-party on-chain Base data and token-safety screening, and a marketplace where agents discover and **pay each other per call in USDC** over x402 — settlement goes straight to the seller's wallet, so there are no accounts, no API keys and no subscriptions.
+Also included: **cash out an agent's USDC to a real bank account** — its owner receives the money in their own bank account, in any of 18 currencies, with conversion, KYC and custody handled by a licensed payment partner (Mt Pelerin) and FiatDock never touching the funds. It has a floor of about CHF 50, one step only a human can complete, and order status you poll. Plus first-party on-chain Base data and token-safety screening.
 
 ## Setup — two steps
 

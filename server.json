@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.fiatdock/fiatdock-mcp",
   "title": "FiatDock",
-  "description": "Cash out an AI agent's USDC to a real bank account (non-custodial). Plus Base data + a marketplace",
-  "version": "1.9.0",
+  "description": "MCP marketplace: AI agents buy services from other agents per call in USDC, plus a bank cash-out",
+  "version": "1.9.1",
   "websiteUrl": "https://fiatdock.com",
   "repository": {
     "url": "https://github.com/fiatdock/fiatdock",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "fiatdock-mcp",
-      "version": "1.9.0",
+      "version": "1.9.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
