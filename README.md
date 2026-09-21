@@ -12,13 +12,13 @@ Also included: **cash out an agent's USDC to a real bank account** — its owner
 #    create a FRESH wallet, fund it with a few USDC on Base, and export its key:
 export AGENT_PRIVATE_KEY=0x...   # dedicated low-balance wallet — never your main key
 
-# 2. Run the server — 18 MCP tools over stdio, paid calls settle automatically:
+# 2. Run the server — 22 MCP tools over stdio, paid calls settle automatically:
 npx -y fiatdock-mcp
 ```
 
 No wallet yet? Everything marked **free** below still works — start with `get_quote` and `token_price`, add the wallet when you want the paid tools.
 
-**4 ramp tools** (USDC ↔ your own bank) + **11 data tools** (crypto + on-chain intelligence) + **3 marketplace tools** (discover & call other agents' MCP services) — all non-custodial. Take only the group you need with [`FIATDOCK_TOOLS`](#pick-your-tools--fiatdock_tools):
+**4 ramp tools** (USDC ↔ your own bank) + **13 data tools** (crypto + on-chain intelligence, a web page reader, an email check) + **5 marketplace tools** (discover & call other agents' MCP services — and search & pay ANY x402 endpoint in the public index) — all non-custodial. Take only the group you need with [`FIATDOCK_TOOLS`](#pick-your-tools--fiatdock_tools):
 
 | Tool | Cost | What it does |
 |---|---|---|
@@ -37,9 +37,13 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | `tx_status` | $0.001 USDC via x402 | Base tx: success or failed, block, confirmations, gas, from/to |
 | `address_intel` | $0.005 USDC via x402 | Enrich any Base address — EOA/contract/ERC-20, nonce, ETH+USDC balance, keyless security verdict (phishing / sanctioned / mixer) |
 | `token_report` | $0.05 USDC via x402 | Full ERC-20 report in ONE call: price + liquidity + volume **and** the complete safety verdict |
+| `web_read` | $0.002 USDC via x402 | Any public web page as clean text — title, description, canonical, readable body, first 50 links, word count; a page that cannot be read is not charged |
+| `email_check` | $0.001 USDC via x402 | Is this email worth sending to? Syntax, DNS (MX, then A/AAAA), disposable / role / free-provider lists, a typo suggestion, a normalized form, a risk verdict with reasons — no SMTP probe |
 | `search_services` | free | Search the FiatDock marketplace of MCP services — matches each listed server's own tool names, not just its description. Returns the **top 20** best-matching listings by default (`limit`, max 50); `truncated`/`total` tell you when there are more |
 | `get_service` | free | One listing's full detail + how to call it |
 | `call_service` | per-listing (x402) | Invoke a listed service. Paid calls settle 99% → seller + 1% → FiatDock (100% → seller during that seller's first month), non-custodially. Pays automatically from `AGENT_PRIVATE_KEY`, **or** pass your own signed `payment` — see below |
+| `search_x402` | free | Search the **public x402 index** — every pay-per-call endpoint it lists (~15,000 from hundreds of hosts), ranked by relevance then 30-day paid calls. Each row: URL, indexed price, network, the endpoint's own `payTo`, 30-day calls/payers |
+| `call_x402` | per endpoint (paid to that endpoint) | Pay **any** index-listed x402 endpoint straight from `AGENT_PRIVATE_KEY` to the endpoint's `payTo` — FiatDock takes no fee and never touches it. **Requires `maxPriceUsd`** (or `FIATDOCK_MAX_PRICE_USD`): a third-party 402 is the only statement of price, so with no ceiling nothing is signed and the price comes back. Or pass your own signed `payment` |
 
 - **Remote endpoint (no install):** `https://fiatdock.com/mcp` — Streamable HTTP, stateless, CORS-enabled. It holds no key, so paid tools answer with the x402 402 challenge — **and you can complete the purchase from there** by signing it yourself (below).
 
@@ -69,21 +73,35 @@ Send the **same** `id` and `args` on the second call — the request quoted in t
 | `AGENT_PRIVATE_KEY` | only for paid tools | Agent wallet key used to auto-pay the x402 fee — **$0.001–$0.05 depending on the tool**, plus whatever a marketplace seller charges for `call_service`. Without it, the five free tools still work and paid tools return the 402 challenge instead of buying. **Use a dedicated low-balance wallet; never your main key.** |
 | `FIATDOCK_MAX_PRICE_USD` | no (default: no ceiling) | Price-bait guard for `call_service`: refuse to pay if a paid gateway call's **total** x402 charge exceeds this many USD. Overridable per call via the `maxPriceUsd` argument. |
 
+### Any x402 endpoint — `search_x402` / `call_x402`
+
+The same wallet buys beyond FiatDock's catalog. `search_x402` searches the public x402 index (~15,000
+priced endpoints, ranked by 30-day paid calls); `call_x402` reads the endpoint's own 402, checks it
+against `maxPriceUsd`, signs that one requirement and pays the endpoint's `payTo` directly — no relay, no
+gateway, no FiatDock fee. The ceiling is **required** here (unlike `call_service`, whose gateway prices a
+listing FiatDock vetted): a third-party 402 is the only statement of price, so with no `maxPriceUsd` and
+no `FIATDOCK_MAX_PRICE_USD` the tool signs nothing and returns the price for your next call.
+
+```
+search_x402({q: "web search", maxPriceUsd: 0.01})            -> results[] with url, priceUsd, payTo, calls30d
+call_x402({url, body: {query: "…"}, maxPriceUsd: 0.01})      -> { ok, status, paid, settlement, result }
+```
+
 ### Pick your tools — `FIATDOCK_TOOLS`
 
-All 18 tools install by default. A tool list is the first thing a model reads, so if you only
+All 22 tools install by default. A tool list is the first thing a model reads, so if you only
 came for one thing, take only that:
 
 | Group | Tools | For |
 |---|---|---|
 | `ramp` | 4 | Quotes, USDC↔bank sessions, order status |
-| `data` | 11 | Token price/safety/report, gas, balances, tx status, address intelligence |
-| `marketplace` | 3 | Find, inspect and pay for other agents' MCP services |
+| `data` | 13 | Token price/safety/report, gas, balances, tx status, address intelligence, web page reader, email check |
+| `marketplace` | 5 | Find, inspect and pay for other agents' MCP services — and search/pay any endpoint in the public x402 index |
 
 ```bash
 FIATDOCK_TOOLS=ramp                # just the cash-out surface (4 tools)
-FIATDOCK_TOOLS=ramp,marketplace    # cash out + buy from other agents (7 tools)
-# unset, or "all"                  # everything (18 tools)
+FIATDOCK_TOOLS=ramp,marketplace    # cash out + buy from other agents (9 tools)
+# unset, or "all"                  # everything (22 tools)
 ```
 
 An unrecognised value serves **all** tools rather than none — a typo should never leave you
