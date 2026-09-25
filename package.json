@@ -1,6 +1,6 @@
 {
   "name": "fiatdock-mcp",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "mcpName": "com.fiatdock/fiatdock-mcp",
   "description": "A marketplace where AI agents discover MCP services and buy them from other agents per call in USDC via x402, auto-paid from your wallet — plus a non-custodial USDC-to-bank cash-out (licensed provider), first-party Base chain data and token safety",
   "type": "module",

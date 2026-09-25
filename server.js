@@ -221,7 +221,7 @@ const SAFETY_OUTPUT = {
   liquidityUsd: z.number().nullable().optional().describe("DEX liquidity in USD"),
   risks: z.array(z.object({ level: z.string(), flag: z.string(), detail: z.string() })).describe("Each detected risk: level (danger|caution), flag, detail"),
   source: z.string().describe("Data source (e.g. GoPlus Security + DexScreener)"),
-  asOf: z.string().describe("ISO 8601 time the verdict was computed"),
+  asOf: z.string().describe("ISO 8601 time the source data was read (a cached read can be up to a minute old)"),
   note: z.string().optional().describe("Human-readable caveat about the verdict, if any"),
 };
 const STABLE_OUTPUT = {
@@ -230,7 +230,7 @@ const STABLE_OUTPUT = {
   name: z.string().optional().describe("Stablecoin full name"),
   pegMechanism: z.string().optional().describe("e.g. fiat-backed, crypto-backed, algorithmic"),
   price: z.number().nullable().describe("Current price in USD"),
-  pegDeviationPct: z.number().nullable().describe("Absolute deviation from $1.00, %"),
+  pegDeviationPct: z.number().nullable().describe("Absolute deviation from the peg, % (from $1.00 for a USD stablecoin; for another peg, measured against that currency's USD rate; null when unknown)"),
   pegStatus: z.string().describe("on-peg | slight-deviation | off-peg | unknown"),
   totalCirculatingUsd: z.number().nullable().describe("Total circulating supply (USD)"),
   onBase: z.object({ circulatingUsd: z.number().nullable(), shareOfTotalPct: z.number().nullable() }).describe("Circulating supply on Base + its share of total"),
@@ -426,7 +426,7 @@ function callHintFor(listing) {
     ` Two cautions before paying for a different tool: a name the server does not recognise can come back as an argument error, which is settled as your call; and some sellers bill their tools separately — if the answer is an x402 payment demand, the gateway refuses to settle, so you are not charged but you get no answer. ${SETTLEMENT_GUARANTEE}`;
   listing.callHint = listing.callable === false
     ? (listing.callableReason === "seller_payout_unset"
-        ? `DO NOT CALL: the seller has set no payout wallet, so there is nowhere to send their 99% — the gateway answers 409 and never issues a price. Pick another listing.`
+        ? `DO NOT CALL: the seller has set no payout wallet, so there is nowhere to send their share — the gateway answers 409 and never issues a price. Pick another listing.`
         : listing.callableReason === "listing_suspended"
         ? `DO NOT CALL: this listing is suspended; the gateway answers 403. Pick another listing.`
         : listing.callableReason === "listing_tool_missing"
@@ -436,9 +436,9 @@ function callHintFor(listing) {
     ? `PAID ($${listing.priceUsd}/call) — this listing names no single tool, so call_service's args must name one. ${ENVELOPE_CALL} It is forwarded to the seller untouched. ` +
       `No template is printed here, because a copied placeholder name is a call the server cannot route: call get_service({ id: "${listing.id}", includeSchemas: true }) first — it returns toolSchemas (argument names and types, for up to 40 of the server's tools) for free, and a paid listing's own endpoint is not published. ` +
       `Its server exposes ${listing.toolCount || "many"} tool(s)${Array.isArray(listing.toolNames) && listing.toolNames.length ? ` — e.g. ${listing.toolNames.slice(0, 5).join(", ")}` : ""}. ` +
-      `${SETTLEMENT_GUARANTEE} Payment is the usual x402 split: the fiatdock-mcp npm package pays it automatically from AGENT_PRIVATE_KEY, and the remote /mcp returns the 402 challenge to sign and send back as call_service's payment argument.`
+      `${SETTLEMENT_GUARANTEE} Payment is whatever the 402 lists: the fiatdock-mcp npm package pays it automatically from AGENT_PRIVATE_KEY, and the remote /mcp returns the 402 challenge to sign and send back as call_service's payment argument.`
     : routedListing(listing)
-    ? `PAID ($${listing.priceUsd}/call): call_service({ id: "${listing.id}", args }) pays the 99% seller + 1% FiatDock split via x402 automatically (AGENT_PRIVATE_KEY required). You are charged only if the seller actually answers.` + SHAPES
+    ? `PAID ($${listing.priceUsd}/call): call_service({ id: "${listing.id}", args }) pays whatever the 402 lists via x402 automatically — one full-price leg to the seller, or two when FiatDock takes a commission (AGENT_PRIVATE_KEY required). You are charged only if the seller actually answers.` + SHAPES
     : listing.listingType === "stdio"
     ? `FREE npm (stdio) package: run it locally — npx -y ${listing.packageName} — or add {"command":"npx","args":["-y","${listing.packageName}"]} to your MCP client config. Not remotely callable, so call_service cannot invoke it.`
     : listing.x402PriceUsd
@@ -467,7 +467,7 @@ const SERVICE_FIELDS = {
   verified: z.boolean().describe("Verified seller (KYC + active badge) or first-party (platform-vouched)"),
   firstParty: z.boolean().optional().describe("Platform's own featured listing (official)"),
   sellerName: z.string().optional().describe("Seller display name, if set"),
-  gatewayUrl: z.string().nullable().describe("Absolute URL to reach it: the FiatDock gateway https://…/s/:id (PAID — invoke via call_service, 99/1 split) OR the listing's own MCP endpoint (FREE/first-party — call directly). null for stdio (npm package) listings — run those locally instead"),
+  gatewayUrl: z.string().nullable().describe("Absolute URL to reach it: the FiatDock gateway https://…/s/:id (PAID — invoke via call_service; the 402 lists what to pay) OR the listing's own MCP endpoint (FREE/first-party — call directly). null for stdio (npm package) listings — run those locally instead"),
   mcpEndpoint: z.string().optional().describe("Real MCP endpoint — present only for FREE/first-party (direct) listings"),
   listingType: z.string().optional().describe('"http" (hosted Streamable-HTTP endpoint) or "stdio" (an npm package agents run locally via npx; always free, not remotely callable)'),
   packageName: z.string().optional().describe("npm package name — present only on stdio listings; install with npx -y <packageName>"),
@@ -505,7 +505,7 @@ const CALL_OUTPUT = {
   ok: z.boolean().describe("true when the underlying service returned a 2xx"),
   status: z.number().describe("HTTP status returned by the service (or the gateway)"),
   service: z.string().describe("Listing id that was invoked"),
-  routedThroughGateway: z.boolean().describe("true if PAID (settled 99% seller / 1% FiatDock via /s/:id); false if FREE/first-party direct"),
+  routedThroughGateway: z.boolean().describe("true if PAID (settled via /s/:id — the 402 lists the payment(s): the seller's share, plus FiatDock's commission when one applies); false if FREE/first-party direct"),
   result: z.any().optional().describe("The service's response body — parsed JSON when it returned JSON, otherwise the raw text"),
 };
 // ADR-0171 P2 — the PUBLIC x402 index. DUPLICATED from src/mcp-http.js on purpose (this file ships
@@ -584,7 +584,7 @@ const EMAIL_CHECK_OUTPUT = {
   suggestion: z.string().nullable().describe("A corrected address when the domain looks like a typo of a common provider, else null"),
   deliverableDomain: z.boolean().describe("Syntax valid AND the domain accepts mail at the DNS level — a statement about the DOMAIN, never the mailbox"),
   risk: z.enum(["low", "medium", "high", "undeliverable"]).describe("The verdict: undeliverable (bad syntax / no domain / no mail host), high (disposable), medium (role mailbox or likely typo), low"),
-  reasons: z.array(z.string()).describe("Why: invalid_syntax, domain_not_found, no_mx_record, disposable_domain, role_mailbox, likely_typo, free_provider"),
+  reasons: z.array(z.string()).describe("Why: invalid_syntax, domain_not_found, domain_accepts_no_mail (a null MX, RFC 7505), no_mx_record, disposable_domain, role_mailbox, likely_typo, free_provider"),
   method: z.string().describe("Exactly what was checked, and that no SMTP probe was made"),
   checkedAt: z.string().describe("ISO time of the check"),
 };
@@ -906,7 +906,7 @@ server.registerTool(
   {
     title: "Get a marketplace service's detail",
     description:
-      "Full detail for one FiatDock marketplace listing, including how to call it: PAID listings route through the gateway via call_service (the 99/1 split is enforced); FREE/first-party listings expose their real MCP endpoint to call directly. Read-only, free.",
+      "Full detail for one FiatDock marketplace listing, including how to call it: PAID listings route through the gateway via call_service (the 402 lists what to pay); FREE/first-party listings expose their real MCP endpoint to call directly. Read-only, free.",
     inputSchema: {
       id: z.string().describe("Listing id (svc_…) from search_services"),
       // ADR-0143 — a paid listing's own MCP endpoint is withheld (ADR-0007), so the seller's
@@ -1214,7 +1214,7 @@ server.registerTool(
   {
     title: "Call a marketplace service",
     description:
-      "Invoke a listed FiatDock service. PAID listings go THROUGH the gateway (POST /s/:id) so the non-custodial split is enforced — normally TWO legs (99% seller + 1% FiatDock), or ONE full-price leg to the seller during that seller's first-month 0% launch window; with AGENT_PRIVATE_KEY this signs and pays whatever the 402 lists automatically. WITHOUT a key — or to spend from a different wallet — buy in two calls: call once to get the 402 challenge and instructions, sign it yourself, then call again with the same id/args plus `payment` set to the base64 x402 payload (it is sent as the gateway's PAYMENT-SIGNATURE header — the x402 v2 name; the v1 X-PAYMENT is also accepted — and takes precedence over AGENT_PRIVATE_KEY). FREE / first-party listings are forwarded to their real MCP endpoint directly (no payment). Pass the service's expected request body as `args`.",
+      "Invoke a listed FiatDock service. PAID listings go THROUGH the gateway (POST /s/:id) so the non-custodial payment is enforced — ONE full-price leg straight to the seller when FiatDock takes no commission, TWO legs (seller share + FiatDock's commission) otherwise; with AGENT_PRIVATE_KEY this signs and pays whatever the 402 lists automatically. WITHOUT a key — or to spend from a different wallet — buy in two calls: call once to get the 402 challenge and instructions, sign it yourself, then call again with the same id/args plus `payment` set to the base64 x402 payload (it is sent as the gateway's PAYMENT-SIGNATURE header — the x402 v2 name; the v1 X-PAYMENT is also accepted — and takes precedence over AGENT_PRIVATE_KEY). FREE / first-party listings are forwarded to their real MCP endpoint directly (no payment). Pass the service's expected request body as `args`.",
     inputSchema: {
       id: z.string().describe("Listing id (svc_…) to invoke, from search_services"),
       args: z.record(z.any()).optional().describe("JSON payload to send to the service (e.g. an MCP JSON-RPC request body) — shape is defined by that service"),
@@ -1258,7 +1258,7 @@ server.registerTool(
         service: id,
         reason: listing.callableReason,
         detail: listing.callableReason === "seller_payout_unset"
-          ? `"${listing.name}" has no payout wallet, so there is nowhere to send the seller's 99% — the gateway answers 409 and never issues a price. This is not staleness; there is no payment to make.`
+          ? `"${listing.name}" has no payout wallet, so there is nowhere to send the seller's share — the gateway answers 409 and never issues a price. This is not staleness; there is no payment to make.`
           : `"${listing.name}" is suspended; the gateway answers 403.`,
         hint: `Use search_services to pick another listing. Listings that merely failed their last health check are NOT blocked here. ${SETTLEMENT_GUARANTEE}`,
       }) }], isError: true };

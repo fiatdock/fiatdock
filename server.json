@@ -3,7 +3,7 @@
   "name": "com.fiatdock/fiatdock-mcp",
   "title": "FiatDock",
   "description": "MCP marketplace: AI agents buy services from other agents per call in USDC, plus a bank cash-out",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "websiteUrl": "https://fiatdock.com",
   "repository": {
     "url": "https://github.com/fiatdock/fiatdock",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "fiatdock-mcp",
-      "version": "1.10.0",
+      "version": "1.10.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
