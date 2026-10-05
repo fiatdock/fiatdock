@@ -12,7 +12,7 @@ Also included: **cash out an agent's USDC to a real bank account** — its owner
 #    create a FRESH wallet, fund it with a few USDC on Base, and export its key:
 export AGENT_PRIVATE_KEY=0x...   # dedicated low-balance wallet — never your main key
 
-# 2. Run the server — 22 MCP tools over stdio, paid calls settle automatically:
+# 2. Run the server — 39 MCP tools over stdio, paid calls settle automatically:
 npx -y fiatdock-mcp
 ```
 
@@ -27,7 +27,7 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | `create_onramp_session` | $0.01 USDC via x402 | Owner's own fiat → USDC to the agent's wallet (address locked) |
 | `get_order_status` | free | Track an order by `partnerOrderId` |
 | `token_price` | free | Real-time price/liquidity/volume/change for any EVM token by contract address (DexScreener), or a major symbol spot price |
-| `token_safety` | $0.01 USDC via x402 | On-chain safety verdict (honeypot / tax / owner-privilege / holder-concentration) `safe\|caution\|danger` (GoPlus + DexScreener); not charged if data unavailable |
+| `token_safety` | $0.0045 USDC via x402 | On-chain safety verdict (honeypot / tax / owner-privilege / holder-concentration) `safe\|caution\|danger` (GoPlus + DexScreener); not charged if data unavailable |
 | `stablecoin_intel` | $0.002 USDC via x402 | Stablecoin supply, $1.00 peg deviation & per-chain breakdown incl. Base (DefiLlama); not charged if data unavailable |
 | `gas_price` | $0.001 USDC via x402 | Base gas price (wei + gwei) |
 | `block_number` | $0.001 USDC via x402 | Base latest block height + timestamp |
@@ -35,10 +35,27 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | `usdc_balance` | $0.001 USDC via x402 | USDC balance of any address on Base |
 | `token_metadata` | $0.002 USDC via x402 | ERC-20 name / symbol / decimals / total supply on Base |
 | `tx_status` | $0.001 USDC via x402 | Base tx: success or failed, block, confirmations, gas, from/to |
-| `address_intel` | $0.005 USDC via x402 | Enrich any Base address — EOA/contract/ERC-20, nonce, ETH+USDC balance, keyless security verdict (phishing / sanctioned / mixer) |
-| `token_report` | $0.05 USDC via x402 | Full ERC-20 report in ONE call: price + liquidity + volume **and** the complete safety verdict |
-| `web_read` | $0.002 USDC via x402 | Any public web page as clean text — title, description, canonical, readable body, first 50 links, word count; a page that cannot be read is not charged |
+| `address_intel` | $0.0045 USDC via x402 | Enrich any Base address — EOA/contract/ERC-20, nonce, ETH+USDC balance, keyless security verdict (phishing / sanctioned / mixer) |
+| `token_report` | $0.0045 USDC via x402 | Full ERC-20 report in ONE call: price + liquidity + volume **and** the complete safety verdict |
+| `web_read` | $0.0018 USDC via x402 | Any public web page as clean text — title, description, canonical, readable body, first 50 links, word count; a page that cannot be read is not charged |
 | `email_check` | $0.001 USDC via x402 | Is this email worth sending to? Syntax, DNS (MX, then A/AAAA), disposable / role / free-provider lists, a typo suggestion, a normalized form, a risk verdict with reasons — no SMTP probe |
+| `perp_market` | $0.001 USDC via x402 | Hyperliquid perps — mark/oracle price, funding rate + APR, open interest, 24h volume — with the next Binance/Bybit funding beside it |
+| `prediction_markets` | $0.0045 USDC via x402 | Live Polymarket odds on any topic — outcome prices (implied probability), volume, liquidity; a search with no match is not charged |
+| `defi_yields` | $0.001 USDC via x402 | Best DeFi yields by chain and token (DefiLlama) — APY base vs rewards, 30-day mean, TVL, IL risk |
+| `fx_rates` | $0.001 USDC via x402 | Live FX rates and conversion for ~170 currencies, with the ECB reference rate beside each |
+| `wallet_portfolio` | $0.0045 USDC via x402 | Every token a Base wallet holds — priced, with a USD total; spam flagged and excluded |
+| `token_holders` | $0.0027 USDC via x402 | Top holders of an ERC-20 — contract/locked/burn flags, locked LP, concentration |
+| `domain_intel` | $0.0045 USDC via x402 | Registrar, age and expiry (RDAP), DNS, SPF/DMARC and the TLS certificate of any domain |
+| `site_contacts` | $0.0027 USDC via x402 | A website's social profiles, role emails (info@, sales@) and tel: phones — persons' addresses never returned |
+| `crypto_news` | $0.001 USDC via x402 | Latest crypto headlines from nine newsrooms, filterable by keyword |
+| `sec_filings` | $0.0027 USDC via x402 | A US company's latest SEC filings by ticker — 10-K, 10-Q, 8-K items, Form 4 — with sec.gov links |
+| `prompt_injection_check` | $0.0045 USDC via x402 | Scan untrusted text for prompt-injection patterns before your agent reads it |
+| `token_screener` | $0.009 USDC via x402 | New and boosted tokens from DexScreener's lists — price, liquidity, volume, buys/sells, age |
+| `paper_search` | $0.018 USDC via x402 | Academic papers from OpenAlex (Crossref fallback) — authors, year, DOI, citations, abstract |
+| `satellite_scenes` | $0.0225 USDC via x402 | Latest Sentinel-2 satellite images of any point — date, cloud cover, preview, full image |
+| `seo_audit` | $0.072 USDC via x402 | Technical SEO audit of a page — issues by severity and a 0-100 score |
+| `x402_top_services` | $0.009 USDC via x402 | The x402 market by seller — est. revenue, paid calls, paying wallets, price |
+| `ens_resolve` | $0.0027 USDC via x402 | ENS names and Basenames ↔ addresses, with profile records |
 | `search_services` | free | Search the FiatDock marketplace of MCP services — matches each listed server's own tool names, not just its description. Returns the **top 20** best-matching listings by default (`limit`, max 50); `truncated`/`total` tell you when there are more |
 | `get_service` | free | One listing's full detail + how to call it |
 | `call_service` | per-listing (x402) | Invoke a listed service. Paid calls settle straight to the seller in the x402 payment(s) the 402 lists — one full-price payment while FiatDock's commission is waived (as it currently is for every seller), otherwise the seller's share plus FiatDock's 1% — non-custodially. Pays automatically from `AGENT_PRIVATE_KEY`, **or** pass your own signed `payment` — see below |
@@ -70,7 +87,7 @@ Send the **same** `id` and `args` on the second call — the request quoted in t
 |---|---|---|
 | `FIATDOCK_URL` | no (default `https://fiatdock.com`) | FiatDock API base URL |
 | `FIATDOCK_TOOLS` | no (default `all`) | Install only the tool groups you need, so the rest don't take up your agent's context. See below. |
-| `AGENT_PRIVATE_KEY` | only for paid tools | Agent wallet key used to auto-pay the x402 fee — **$0.001–$0.05 depending on the tool**, plus whatever a marketplace seller charges for `call_service`. Without it, the five free tools still work and paid tools return the 402 challenge instead of buying. **Use a dedicated low-balance wallet; never your main key.** |
+| `AGENT_PRIVATE_KEY` | only for paid tools | Agent wallet key used to auto-pay the x402 fee — **$0.001–$0.0045 depending on the tool (ramp sessions $0.01)**, plus whatever a marketplace seller charges for `call_service`. Without it, the five free tools still work and paid tools return the 402 challenge instead of buying. **Use a dedicated low-balance wallet; never your main key.** |
 | `FIATDOCK_MAX_PRICE_USD` | no (default: no ceiling) | Price-bait guard for `call_service`: refuse to pay if a paid gateway call's **total** x402 charge exceeds this many USD. Overridable per call via the `maxPriceUsd` argument. |
 
 ### Any x402 endpoint — `search_x402` / `call_x402`
@@ -89,19 +106,19 @@ call_x402({url, body: {query: "…"}, maxPriceUsd: 0.01})      -> { ok, status, 
 
 ### Pick your tools — `FIATDOCK_TOOLS`
 
-All 22 tools install by default. A tool list is the first thing a model reads, so if you only
+All 39 tools install by default. A tool list is the first thing a model reads, so if you only
 came for one thing, take only that:
 
 | Group | Tools | For |
 |---|---|---|
 | `ramp` | 4 | Quotes, USDC↔bank sessions, order status |
-| `data` | 13 | Token price/safety/report, gas, balances, tx status, address intelligence, web page reader, email check |
+| `data` | 24 | Token price/safety/report/holders, gas, balances, wallet portfolio, tx status, address intelligence, perps + funding, prediction markets, DeFi yields, FX, crypto news, SEC filings, domain intel, website contacts, web page reader, email check, prompt-injection check |
 | `marketplace` | 5 | Find, inspect and pay for other agents' MCP services — and search/pay any endpoint in the public x402 index |
 
 ```bash
 FIATDOCK_TOOLS=ramp                # just the cash-out surface (4 tools)
 FIATDOCK_TOOLS=ramp,marketplace    # cash out + buy from other agents (9 tools)
-# unset, or "all"                  # everything (22 tools)
+# unset, or "all"                  # everything (39 tools)
 ```
 
 An unrecognised value serves **all** tools rather than none — a typo should never leave you
