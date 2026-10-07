@@ -51,9 +51,9 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | `sec_filings` | $0.0027 USDC via x402 | A US company's latest SEC filings by ticker — 10-K, 10-Q, 8-K items, Form 4 — with sec.gov links |
 | `prompt_injection_check` | $0.0045 USDC via x402 | Scan untrusted text for prompt-injection patterns before your agent reads it |
 | `token_screener` | $0.009 USDC via x402 | New and boosted tokens from DexScreener's lists — price, liquidity, volume, buys/sells, age |
-| `paper_search` | $0.018 USDC via x402 | Academic papers from OpenAlex (Crossref fallback) — authors, year, DOI, citations, abstract |
-| `satellite_scenes` | $0.0225 USDC via x402 | Latest Sentinel-2 satellite images of any point — date, cloud cover, preview, full image |
-| `seo_audit` | $0.072 USDC via x402 | Technical SEO audit of a page — issues by severity and a 0-100 score |
+| `paper_search` | $0.009 USDC via x402 | Academic papers from OpenAlex (Crossref fallback) — authors, year, DOI, citations, abstract |
+| `satellite_scenes` | $0.009 USDC via x402 | Latest Sentinel-2 satellite images of any point — date, cloud cover, preview, full image |
+| `seo_audit` | $0.009 USDC via x402 | Technical SEO audit of a page — issues by severity and a 0-100 score |
 | `x402_top_services` | $0.009 USDC via x402 | The x402 market by seller — est. revenue, paid calls, paying wallets, price |
 | `ens_resolve` | $0.0027 USDC via x402 | ENS names and Basenames ↔ addresses, with profile records |
 | `search_services` | free | Search the FiatDock marketplace of MCP services — matches each listed server's own tool names, not just its description. Returns the **top 20** best-matching listings by default (`limit`, max 50); `truncated`/`total` tell you when there are more |
