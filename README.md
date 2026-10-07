@@ -87,7 +87,7 @@ Send the **same** `id` and `args` on the second call — the request quoted in t
 |---|---|---|
 | `FIATDOCK_URL` | no (default `https://fiatdock.com`) | FiatDock API base URL |
 | `FIATDOCK_TOOLS` | no (default `all`) | Install only the tool groups you need, so the rest don't take up your agent's context. See below. |
-| `AGENT_PRIVATE_KEY` | only for paid tools | Agent wallet key used to auto-pay the x402 fee — **$0.001–$0.0045 depending on the tool (ramp sessions $0.01)**, plus whatever a marketplace seller charges for `call_service`. Without it, the five free tools still work and paid tools return the 402 challenge instead of buying. **Use a dedicated low-balance wallet; never your main key.** |
+| `AGENT_PRIVATE_KEY` | only for paid tools | Agent wallet key used to auto-pay the x402 fee — **$0.001–$0.009 depending on the tool (ramp sessions $0.01)**, plus whatever a marketplace seller charges for `call_service`. Without it, the six free tools still work and paid tools return the 402 challenge instead of buying. **Use a dedicated low-balance wallet; never your main key.** |
 | `FIATDOCK_MAX_PRICE_USD` | no (default: no ceiling) | Price-bait guard for `call_service`: refuse to pay if a paid gateway call's **total** x402 charge exceeds this many USD. Overridable per call via the `maxPriceUsd` argument. |
 
 ### Any x402 endpoint — `search_x402` / `call_x402`

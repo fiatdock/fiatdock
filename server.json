@@ -34,7 +34,7 @@
         },
         {
           "name": "AGENT_PRIVATE_KEY",
-          "description": "Agent wallet key that auto-pays the x402 fee for paid tools ($0.001-$0.05 depending on the tool, plus whatever a marketplace seller charges). Optional: the five free tools (get_quote, get_order_status, token_price, search_services, get_service) work without it. Use a dedicated low-balance wallet.",
+          "description": "Agent wallet key that auto-pays the x402 fee for paid tools ($0.001-$0.009 for data tools, $0.01 for a ramp session, plus whatever a marketplace seller charges). Optional: the six free tools (get_quote, get_order_status, token_price, search_services, get_service, search_x402) work without it. Use a dedicated low-balance wallet.",
           "isRequired": false,
           "isSecret": true
         },

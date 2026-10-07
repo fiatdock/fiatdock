@@ -25,7 +25,7 @@ let payFetch = fetch;
 let account = null;
 if (process.env.AGENT_PRIVATE_KEY) {
   // A malformed key must NOT kill the server (ADR-0072). AGENT_PRIVATE_KEY is optional —
-  // without it the five free tools work and paid ones return a 402 — so an unusable value
+  // without it the six free tools work and paid ones return a 402 — so an unusable value
   // should land exactly where an absent one lands, not throw at module scope.
   //
   // This was not theoretical: every config example we publish carries the placeholder
@@ -968,7 +968,7 @@ server.registerTool(
 // ---------- PAID tools, registered AFTER every free tool ----------
 // tools/list order is the first thing an agent (and its human) reads, and the
 // diagnosis (ADR-0055) showed prospects bouncing off the paywall without ever
-// noticing the free entry points. All five free tools first, paid second.
+// noticing the free entry points. All six free tools first, paid second.
 // These registrations run at module top level — NEVER inside another tool's
 // handler (ADR-0056: they once landed after a return and became dead code).
 server.registerTool(
