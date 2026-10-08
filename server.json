@@ -3,7 +3,7 @@
   "name": "com.fiatdock/fiatdock-mcp",
   "title": "FiatDock",
   "description": "MCP marketplace: AI agents buy services from other agents per call in USDC, plus a bank cash-out",
-  "version": "1.12.1",
+  "version": "1.13.0",
   "websiteUrl": "https://fiatdock.com",
   "repository": {
     "url": "https://github.com/fiatdock/fiatdock",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "fiatdock-mcp",
-      "version": "1.12.1",
+      "version": "1.13.0",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
@@ -28,7 +28,7 @@
         },
         {
           "name": "FIATDOCK_TOOLS",
-          "description": "Install only the tool groups you need, so unused tools don't take up your agent's context: 'ramp' (4 tools: quotes, USDC<->bank sessions, order status), 'data' (30 tools: token price/safety/report/holders, a new-token screener, gas, balances, portfolio, tx status, address intelligence, ENS names, perps and funding, prediction markets, DeFi yields, FX, crypto news, SEC filings, academic papers, satellite images, domain intel, website contacts, SEO audits, page reads, email checks, the x402 market leaderboard, a prompt-injection check), 'marketplace' (5 tools: search, inspect and pay for other agents' MCP services, and search and pay any endpoint in the public x402 index). Comma-separate to combine, e.g. 'ramp,marketplace'. Default: all 39. An unrecognised value serves all tools rather than none.",
+          "description": "Install only the tool groups you need, so unused tools don't take up your agent's context: 'ramp' (4 tools: quotes, USDC<->bank sessions, order status), 'data' (38 tools: token price/safety/report/holders, a new-token screener, gas, balances, portfolio, tx status, address intelligence, ENS names, perps and funding, prediction markets, DeFi yields, FX, crypto news, SEC filings and financials, academic papers, satellite images, domain intel, website contacts, SEO audits, page reads, email checks, the x402 market leaderboard, a prompt-injection check, time zones, holidays, weather, Wikipedia, Hacker News, RSS feeds, npm/PyPI package safety), 'marketplace' (5 tools: search, inspect and pay for other agents' MCP services, and search and pay any endpoint in the public x402 index). Comma-separate to combine, e.g. 'ramp,marketplace'. Default: all 47. An unrecognised value serves all tools rather than none.",
           "isRequired": false,
           "default": "all"
         },

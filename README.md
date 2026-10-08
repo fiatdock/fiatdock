@@ -12,7 +12,7 @@ Also included: **cash out an agent's USDC to a real bank account** — its owner
 #    create a FRESH wallet, fund it with a few USDC on Base, and export its key:
 export AGENT_PRIVATE_KEY=0x...   # dedicated low-balance wallet — never your main key
 
-# 2. Run the server — 39 MCP tools over stdio, paid calls settle automatically:
+# 2. Run the server — 47 MCP tools over stdio, paid calls settle automatically:
 npx -y fiatdock-mcp
 ```
 
@@ -56,6 +56,14 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | `seo_audit` | $0.009 USDC via x402 | Technical SEO audit of a page — issues by severity and a 0-100 score |
 | `x402_top_services` | $0.009 USDC via x402 | The x402 market by seller — est. revenue, paid calls, paying wallets, price |
 | `ens_resolve` | $0.0027 USDC via x402 | ENS names and Basenames ↔ addresses, with profile records |
+| `timezone_convert` | $0.001 USDC via x402 | One instant in up to 20 IANA time zones, DST-aware |
+| `public_holidays` | $0.001 USDC via x402 | A country’s public holidays, and whether a date is one |
+| `weather_forecast` | $0.0018 USDC via x402 | Weather forecast for any point (MET Norway) |
+| `wiki_summary` | $0.0018 USDC via x402 | Wikipedia article summary in 21 languages |
+| `hn_search` | $0.0027 USDC via x402 | Hacker News front page or search |
+| `feed_read` | $0.0022 USDC via x402 | Any RSS or Atom feed as JSON items |
+| `package_intel` | $0.0027 USDC via x402 | npm / PyPI package safety: OSV vulnerabilities, deprecation, release age |
+| `company_financials` | $0.0045 USDC via x402 | A US company’s reported financials (SEC XBRL) |
 | `search_services` | free | Search the FiatDock marketplace of MCP services — matches each listed server's own tool names, not just its description. Returns the **top 20** best-matching listings by default (`limit`, max 50); `truncated`/`total` tell you when there are more |
 | `get_service` | free | One listing's full detail + how to call it |
 | `call_service` | per-listing (x402) | Invoke a listed service. Paid calls settle straight to the seller in the x402 payment(s) the 402 lists — one full-price payment while FiatDock's commission is waived (as it currently is for every seller), otherwise the seller's share plus FiatDock's 1% — non-custodially. Pays automatically from `AGENT_PRIVATE_KEY`, **or** pass your own signed `payment` — see below |
@@ -106,7 +114,7 @@ call_x402({url, body: {query: "…"}, maxPriceUsd: 0.01})      -> { ok, status, 
 
 ### Pick your tools — `FIATDOCK_TOOLS`
 
-All 39 tools install by default. A tool list is the first thing a model reads, so if you only
+All 47 tools install by default. A tool list is the first thing a model reads, so if you only
 came for one thing, take only that:
 
 | Group | Tools | For |
@@ -118,7 +126,7 @@ came for one thing, take only that:
 ```bash
 FIATDOCK_TOOLS=ramp                # just the cash-out surface (4 tools)
 FIATDOCK_TOOLS=ramp,marketplace    # cash out + buy from other agents (9 tools)
-# unset, or "all"                  # everything (39 tools)
+# unset, or "all"                  # everything (47 tools)
 ```
 
 An unrecognised value serves **all** tools rather than none — a typo should never leave you
