@@ -11,10 +11,70 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { privateKeyToAccount } from "viem/accounts";
-import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
+import { wrapFetchWithPaymentFromConfig, wrapFetchWithPayment, x402Client as X402Client } from "@x402/fetch";
 import { ExactEvmScheme } from "@x402/evm";
 
 const BASE = process.env.FIATDOCK_URL || "https://fiatdock.com";
+
+// ---------- FIATDOCK_BUDGET_USD: one ceiling over everything this process pays by itself (ADR-0192) ----------
+//
+// FIATDOCK_MAX_PRICE_USD bounds ONE call (ADR-0028). Nothing bounded the TOTAL, so an agent looping on a
+// paid tool with AGENT_PRIVATE_KEY set could drain the wallet one cheap call at a time. This is the total
+// the process may AUTHORIZE across every automatic payment: the paid data tools, the ramp sessions,
+// call_service and call_x402.
+//
+// Counted when SIGNED, not when settled: a signed authorization can be settled by whoever holds it until it
+// expires, even when the call itself failed, so a ceiling counted on receipts could be exceeded — and some
+// sellers settle without sending one (ADR-0185). A payload that was never created is given back.
+//
+// Unset (or empty) = no budget, exactly as before. A set value that is not a number ≥ 0 is treated as 0 and
+// said on stderr: a typo must not silently lift a ceiling someone meant to set. A caller-supplied `payment`
+// is never counted or blocked (ADR-0070) — this bounds OUR signing, not a wallet the agent chose.
+const BUDGET_ATOMIC = (() => {
+  const raw = process.env.FIATDOCK_BUDGET_USD;
+  if (raw == null || String(raw).trim() === "") return null;
+  const n = Number(String(raw).trim());
+  if (!Number.isFinite(n) || n < 0) {
+    console.error(`[fiatdock] FIATDOCK_BUDGET_USD is not a number of USD >= 0 — treating the budget as 0: nothing will be paid automatically until it is corrected.`);
+    return 0n;
+  }
+  return BigInt(Math.round(n * 1e6)); // USDC atomic units (6 decimals), the same unit every ceiling here uses
+})();
+let budgetSpentAtomic = 0n;
+const BUDGET_MARK = "fiatdock_budget_refused:";
+const usd6 = (/** @type {bigint} */ a) => (Number(a) / 1e6).toFixed(6);
+/**
+ * Reserve `amountAtomic` against the budget BEFORE anything is signed. Synchronous on purpose — no await
+ * between the check and the add — so two concurrent calls cannot both pass on the same remainder.
+ * @param {unknown} amountAtomic
+ * @returns {null | Record<string, string>} null = allowed (or no budget); otherwise the refusal
+ */
+function budgetReserve(amountAtomic) {
+  if (BUDGET_ATOMIC == null) return null;
+  let amt = null;
+  try { amt = BigInt(/** @type {any} */ (amountAtomic)); } catch { amt = null; }
+  if (amt == null || amt < 0n || budgetSpentAtomic + amt > BUDGET_ATOMIC) {
+    const left = BUDGET_ATOMIC > budgetSpentAtomic ? BUDGET_ATOMIC - budgetSpentAtomic : 0n;
+    return {
+      error: amt == null || amt < 0n
+        ? "the payment amount could not be read, so it cannot be checked against FIATDOCK_BUDGET_USD — not paid (fail-closed)"
+        : "this payment would exceed FIATDOCK_BUDGET_USD — not paid",
+      budgetUsd: usd6(BUDGET_ATOMIC), spentUsd: usd6(budgetSpentAtomic), remainingUsd: usd6(left),
+      priceUsd: amt == null || amt < 0n ? "unknown" : usd6(amt),
+      hint: "Nothing was signed and nothing was charged. spentUsd counts every payment this server has signed since it started. To allow more, raise FIATDOCK_BUDGET_USD in this MCP server's env and restart it — or pay this one call yourself with the `payment` argument.",
+    };
+  }
+  budgetSpentAtomic += amt;
+  return null;
+}
+/** A reservation whose payload was never created authorizes nothing: give it back. */
+function budgetRelease(/** @type {unknown} */ amountAtomic) {
+  if (BUDGET_ATOMIC == null) return;
+  try { const a = BigInt(/** @type {any} */ (amountAtomic)); budgetSpentAtomic = budgetSpentAtomic >= a ? budgetSpentAtomic - a : 0n; } catch { /* nothing reserved */ }
+}
+/** The refusal as a Response, so every caller renders it exactly like any other non-2xx (isError). */
+const budgetResponse = (/** @type {object} */ body) =>
+  new Response(JSON.stringify(body), { status: 402, headers: { "content-type": "application/json" } });
 
 // x402-paying fetch (falls back to plain fetch if no key — free endpoints still work).
 // Protocol v2: the wildcard network accepts whatever EVM network the server's
@@ -36,9 +96,35 @@ if (process.env.AGENT_PRIVATE_KEY) {
   // the fix — after 1.7.2 the same sandbox lists all 18 tools.
   try {
     account = privateKeyToAccount(process.env.AGENT_PRIVATE_KEY);
-    payFetch = wrapFetchWithPaymentFromConfig(fetch, {
-      schemes: [{ network: "eip155:*", client: new ExactEvmScheme(account) }],
-    });
+    if (BUDGET_ATOMIC == null) {
+      payFetch = wrapFetchWithPaymentFromConfig(fetch, {
+        schemes: [{ network: "eip155:*", client: new ExactEvmScheme(account) }],
+      });
+    } else {
+      // ADR-0192 — the same auto-payer with the budget checked inside the client, right before each
+      // signature (which is also every re-signature the wrapper makes on a recovered payment).
+      const budgeted = X402Client.fromConfig({ schemes: [{ network: "eip155:*", client: new ExactEvmScheme(account) }] });
+      budgeted.onBeforePaymentCreation(async ({ selectedRequirements }) => {
+        const refused = budgetReserve(selectedRequirements && selectedRequirements.amount);
+        return refused ? { abort: true, reason: BUDGET_MARK + JSON.stringify(refused) } : undefined;
+      });
+      budgeted.onPaymentCreationFailure(async ({ selectedRequirements }) => {
+        budgetRelease(selectedRequirements && selectedRequirements.amount); // a failed signature authorizes nothing
+        return undefined;
+      });
+      const wrapped = wrapFetchWithPayment(fetch, budgeted);
+      payFetch = /** @type {typeof fetch} */ (async (input, init) => {
+        try { return await wrapped(input, init); }
+        catch (e) {
+          // The wrapper turns an aborted creation into a thrown Error; the refusal rides in its message.
+          const msg = String((e && /** @type {any} */ (e).message) || "");
+          const at = msg.indexOf(BUDGET_MARK);
+          if (at >= 0) { try { return budgetResponse(JSON.parse(msg.slice(at + BUDGET_MARK.length))); } catch { /* fall through */ } }
+          throw e;
+        }
+      });
+      console.error(`[fiatdock] FIATDOCK_BUDGET_USD: automatic payments stop at $${usd6(BUDGET_ATOMIC)} for this process.`);
+    }
   } catch (err) {
     account = null;
     // stderr only — stdout is the stdio protocol stream.
@@ -816,8 +902,14 @@ async function payGatewayCall(invokeUrl, body, maxAtomic = null) {
   // automatically. The index proves the split exactly: all 11 FiatDock rows in it are routes paid
   // through `wrapFetch`, and every route paid through this line is missing.
   const sign = (leg) => client.createPaymentPayload({ x402Version: 2, resource: pr.resource, accepts: [leg], extensions: pr.extensions });
+  // ADR-0192 — the process-wide budget, on the TOTAL of every leg this 402 lists, before any signature.
+  let legsTotal = 0n;
+  for (const leg of accepts) { try { legsTotal += BigInt(leg.amount); } catch { legsTotal = -1n; break; } }
+  const overBudget = budgetReserve(legsTotal);
+  if (overBudget) return budgetResponse(overBudget);
   const payloads = [];
-  for (const leg of accepts) payloads.push(await sign(leg));
+  try { for (const leg of accepts) payloads.push(await sign(leg)); }
+  catch (e) { budgetRelease(legsTotal); throw e; } // nothing signed here was ever sent
   return fetch(invokeUrl, {
     method: "POST",
     headers: { "content-type": "application/json", "PAYMENT-SIGNATURE": Buffer.from(JSON.stringify(payloads)).toString("base64") },
@@ -1636,12 +1728,17 @@ server.registerTool(
       return priced(`no price ceiling — a third-party 402 is the only statement of price, so call_x402 signs nothing without one. The endpoint asks ${askedUsd} USDC; call again with maxPriceUsd at or above it (or set FIATDOCK_MAX_PRICE_USD)`, { askedUsd });
     if (amount > BigInt(Math.round(ceil * 1e6)))
       return priced("price exceeds your maxPriceUsd ceiling — not paid", { askedUsd, maxPriceUsd: ceil.toFixed(6), hint: "raise maxPriceUsd to authorize this charge, or pick a cheaper endpoint from search_x402" });
+    // ADR-0192 — the process-wide budget, after the per-call ceiling and before the signature.
+    const overBudget = budgetReserve(amount);
+    if (overBudget) return priced(overBudget.error, overBudget);
     const { x402HTTPClient, x402Client } = await import("@x402/fetch");
     const { ExactEvmScheme: ExactEvmClient } = await import("@x402/evm/exact/client");
     const client = new x402HTTPClient(new x402Client().register(leg.network, new ExactEvmClient(account)));
     // ONE payload, sent as the standard single-object header — a plain x402 wall reads that, not the
     // JSON-array form our own gateway accepts for its two legs. `extensions` travel with it (ADR-0113).
-    const signed = await client.createPaymentPayload({ x402Version: 2, resource: challenge.resource, accepts: [leg], extensions: challenge.extensions });
+    let signed;
+    try { signed = await client.createPaymentPayload({ x402Version: 2, resource: challenge.resource, accepts: [leg], extensions: challenge.extensions }); }
+    catch (e) { budgetRelease(amount); throw e; } // a payload that was never created authorizes nothing
     const r = await fetch(u.href, init({ "PAYMENT-SIGNATURE": Buffer.from(JSON.stringify(signed)).toString("base64") }));
     return x402Envelope(r, u.href, m, true, { paidLeg: { network: String(leg.network), asset: String(leg.asset || ""), payTo: String(leg.payTo || ""), amount: String(leg.amount) } });
   }
