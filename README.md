@@ -12,7 +12,7 @@ Also included: **cash out an agent's USDC to a real bank account** — its owner
 #    create a FRESH wallet, fund it with a few USDC on Base, and export its key:
 export AGENT_PRIVATE_KEY=0x...   # dedicated low-balance wallet — never your main key
 
-# 2. Run the server — 48 MCP tools over stdio, paid calls settle automatically:
+# 2. Run the server — 49 MCP tools over stdio, paid calls settle automatically:
 npx -y fiatdock-mcp
 ```
 
@@ -65,6 +65,7 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 | `package_intel` | $0.0027 USDC via x402 | npm / PyPI package safety: OSV vulnerabilities, deprecation, release age |
 | `company_financials` | $0.0045 USDC via x402 | A US company’s reported financials (SEC XBRL) |
 | `token_verdict` | $0.009 USDC via x402 | Should your agent touch this token? A 0-100 safety score, grade, verdict and reasons + price and liquidity, for an ERC-20 on 7 EVM chains or a Solana mint |
+| `strategy_backtest` | $0.009 USDC via x402 | Backtest a stated trading rule (SMA crossover, RSI reversion, DCA, buy-and-hold) on a crypto asset's daily USD closes and compare it with buying and holding — return, drawdown, Sharpe, win rate, every trade and the equity curve |
 | `search_services` | free | Search the FiatDock marketplace of MCP services — matches each listed server's own tool names, not just its description. Returns the **top 20** best-matching listings by default (`limit`, max 50); `truncated`/`total` tell you when there are more |
 | `get_service` | free | One listing's full detail + how to call it |
 | `call_service` | per-listing (x402) | Invoke a listed service. Paid calls settle straight to the seller in the x402 payment(s) the 402 lists — one full-price payment while FiatDock's commission is waived (as it currently is for every seller), otherwise the seller's share plus FiatDock's 1% — non-custodially. Pays automatically from `AGENT_PRIVATE_KEY`, **or** pass your own signed `payment` — see below |
@@ -116,7 +117,7 @@ call_x402({url, body: {query: "…"}, maxPriceUsd: 0.01})      -> { ok, status, 
 
 ### Pick your tools — `FIATDOCK_TOOLS`
 
-All 48 tools install by default. A tool list is the first thing a model reads, so if you only
+All 49 tools install by default. A tool list is the first thing a model reads, so if you only
 came for one thing, take only that:
 
 | Group | Tools | For |
@@ -128,7 +129,7 @@ came for one thing, take only that:
 ```bash
 FIATDOCK_TOOLS=ramp                # just the cash-out surface (4 tools)
 FIATDOCK_TOOLS=ramp,marketplace    # cash out + buy from other agents (9 tools)
-# unset, or "all"                  # everything (48 tools)
+# unset, or "all"                  # everything (49 tools)
 ```
 
 An unrecognised value serves **all** tools rather than none — a typo should never leave you
