@@ -22,7 +22,7 @@ No wallet yet? Everything marked **free** below still works — start with `get_
 
 | Tool | Cost | What it does |
 |---|---|---|
-| `get_quote` | free | Live rate + the exact amount received, net of every provider fee (incl. the 1% service commission) |
+| `get_quote` | free | Live rate + the amount received, net of the provider's commission (free for a person's first CHF 500 a year, then from 1.3%; FiatDock adds nothing) |
 | `create_offramp_session` | $0.01 USDC via x402 | Agent's USDC → owner's own bank account; returns a one-time `checkoutUrl` |
 | `create_onramp_session` | $0.01 USDC via x402 | Owner's own fiat → USDC to the agent's wallet (address locked) |
 | `get_order_status` | free | Track an order by `partnerOrderId` |

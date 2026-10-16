@@ -1765,7 +1765,7 @@ server.registerTool(
 // ---------- Resources: free reference data agents read before transacting ----------
 // Static facts from the public docs/terms — no secrets, no network calls.
 const FEES = {
-  summary: "Pay-per-call plus an included 1% commission. No subscriptions, no hidden fees.",
+  summary: "Agents pay per call in USDC over x402. A cash-out or top-up costs only the provider's own commission; FiatDock adds nothing to it. No subscriptions.",
   apiFee: {
     amount: "$0.01",
     asset: "USDC",
@@ -1773,13 +1773,16 @@ const FEES = {
     appliesTo: ["create_offramp_session", "create_onramp_session", "POST /v1/offramp/session", "POST /v1/onramp/session"],
     note: "Charged once per session-creation call. The 402 challenge states the exact network and payTo address; this server pays automatically when AGENT_PRIVATE_KEY is set.",
   },
-  serviceCommission: {
-    rate: "1%",
-    includedIn: "each transaction's conversion fees",
-    note: "Included in the rate get_quote returns — the quoted receive amount is already net of it, never added on top afterwards.",
+  providerCommission: {
+    basis: "set per person by their total buy/sell/swap volume in the calendar year (resets on 1 January), applied to the whole transaction",
+    bankTransfer: "free for the first CHF 500 of the year, then 1.3% up to CHF 5,000, 1.1% up to CHF 50,000, 0.9% up to CHF 1,000,000, lower beyond",
+    card: "2.5% under CHF 500 a year, then 3.8% (lower at higher volume), minimum CHF 1.20",
+    spread: "none: the provider converts at the spot market rate",
+    fiatdock: "FiatDock adds nothing to it; FiatDock's revenue is a referral share the provider pays out of its own commission",
+    source: "https://developers.mtpelerin.com/service-information/pricing-and-limits",
   },
   providerFees: {
-    note: "The licensed provider's conversion and network fees vary by amount, currency and payment method — always reflected in the get_quote receive amount BEFORE any commitment.",
+    note: "Network costs are paid by the person; get_quote's receive amount is net of the provider's commission as it applies to a person's first transaction of the year, and the checkout shows the final amount before they confirm.",
   },
   dataToolFees: {
     asset: "USDC",
@@ -1823,7 +1826,7 @@ function registerJsonResource(name, uri, { title, description }, data) {
 }
 registerJsonResource("fees", "fiatdock://fees", {
   title: "Fee schedule",
-  description: "Current fee schedule: $0.01 x402 fee per ramp session call, 1% service commission included in conversion fees, what is free. Read before transacting.",
+  description: "Current fee schedule: $0.01 x402 fee per ramp session call, the provider's own conversion commission (FiatDock adds nothing to it), data-tool prices, what is free. Read before transacting.",
 }, FEES);
 registerJsonResource("coverage", "fiatdock://coverage", {
   title: "Coverage & eligibility",
@@ -1918,7 +1921,7 @@ server.registerPrompt(
           text: `Cash out ${amount || "<amount>"} USDC to ${fiatCurrency || "EUR"} in my own bank account via FiatDock (non-custodial; conversion, KYC and custody are handled by a licensed, regulated payment partner). Follow these steps IN ORDER and report back after each one:
 
 1. COMPLIANCE FIRST — read the resources fiatdock://coverage and fiatdock://fees. Confirm: I am 18+, I am not in a restricted jurisdiction, and the sending wallet and the receiving bank account both belong to ME (the agent's owner — own-account rule, binding). If any check fails, STOP and tell me why.
-2. QUOTE (free) — call get_quote with side=SELL and cryptoAmount=${amount || "<amount>"}${fiatCurrency ? ` and fiatCurrency=${fiatCurrency}` : ""}. Show me the rate and exactly how much I will receive — that figure is already net of every provider fee, including the 1% service commission. It is an executable estimate, not a locked rate. Wait for my confirmation before continuing.
+2. QUOTE (free) — call get_quote with side=SELL and cryptoAmount=${amount || "<amount>"}${fiatCurrency ? ` and fiatCurrency=${fiatCurrency}` : ""}. Show me the rate and exactly how much I will receive — that figure is already net of the provider's commission as it applies to a first transaction of the year (free up to CHF 500, then from 1.3%; FiatDock adds nothing), and the checkout shows the final amount. It is an executable estimate, not a locked rate. Wait for my confirmation before continuing.
 3. SESSION (paid: $0.01 USDC via x402, paid automatically) — after I confirm, call create_offramp_session with the same amounts plus my email and a stable customerId. Store any customerKey the response returns — it is shown only once.
 4. FORWARD THE LINK IMMEDIATELY — the checkoutUrl is valid ~2 hours. Give it to me right away so I can open it, give a phone number + email (ID only above ~CHF 999/30d) and confirm the bank transfer.
 5. TRACK — poll get_order_status with the partnerOrderId every few minutes until the status is COMPLETED (or FAILED/CANCELLED/EXPIRED — if so, tell me what happened; every error includes a hint with the exact fix).
